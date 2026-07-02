@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
+    "prestart": "node scripts/set-api-host.js",
+    "preandroid": "node scripts/set-api-host.js",
+    "preios": "node scripts/set-api-host.js",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",

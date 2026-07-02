@@ -18,7 +18,7 @@
 export const DB_ROLES = {
   SUPER_ADMIN:          1,
   GERENTE:              2,
-  CLIENTE:              3,  // rol base para clientes/socios (hierarchy_level = 1)
+  CLIENTE:              3,
   ENTRENADOR:           4,
   INSTRUCTOR:           7,
   NUTRICIONISTA:        8,
@@ -27,10 +27,6 @@ export const DB_ROLES = {
 
 export type DbRoleId = (typeof DB_ROLES)[keyof typeof DB_ROLES];
 
-/**
- * Mapa inverso: roleId (number) → nombre del rol (string).
- * Cubre todos los roles actuales de la BD.
- */
 export const ROLE_ID_TO_NAME: Record<number, string> = {
   1:  'SUPER_ADMIN',
   2:  'GERENTE',

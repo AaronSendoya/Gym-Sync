@@ -88,7 +88,7 @@ const TimeSelect = ({ value, onChange }: { value: string; onChange: (v: string) 
 //Styles
 const GIBBERISH_RE = /[bcdfghjklmnñpqrstvwxyz]{5,}/i;
 const ACT_NAME_MAX = 100;
-const ACT_DESC_MAX = 500;
+const ACT_DESC_MAX = 200;
 
 const panelStyle: CSSProperties = { padding: '2rem', minHeight: '100vh' };
 

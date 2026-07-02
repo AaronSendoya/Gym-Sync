@@ -177,9 +177,23 @@ export const ReservarHorarioScreen = ({ route, navigation }: Props) => {
       ]);
     },
     onError: (error: any) => {
-      const msg =
-        error?.response?.data?.message ?? 'No se pudo completar la reserva.';
-      Alert.alert('Error al reservar', msg);
+      const status = error?.response?.status;
+      const msg = error?.response?.data?.message;
+      if (status === 409) {
+        Alert.alert(
+          'Reserva duplicada',
+          typeof msg === 'string' && msg.trim()
+            ? msg
+            : 'Ya tienes una reserva activa para este horario.',
+        );
+      } else {
+        Alert.alert(
+          'Error al reservar',
+          typeof msg === 'string' && msg.trim()
+            ? msg
+            : 'No se pudo completar la reserva. Verifica tu conexión e inténtalo de nuevo.',
+        );
+      }
     },
   });
 

@@ -46,6 +46,8 @@ services:
       # SMTP (opcional)
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
+    ports:
+      - "3000:3000"
     volumes:
       - uploads_data:/app/uploads
     networks:

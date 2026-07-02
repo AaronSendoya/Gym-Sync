@@ -23,6 +23,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { registerToken, clearToken } = usePushNotifications();
+  const isForceLoggedOut = React.useRef(false);
 
   /**
    * Al montar el componente, restaurar la sesión si existe
@@ -38,6 +39,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
 
           const userData = await AuthService.fetchUserProfile();
+          if (isForceLoggedOut.current) return;
+          
           const freshProfile = userData?.profile ?? cachedProfile ?? undefined;
           setUser({ ...currentUser, ...(({ profile: freshProfile ?? undefined }) as any) });
 
@@ -63,7 +66,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch (e) {
         console.warn('[AuthContext] Error restaurando sesión:', e);
       } finally {
-        setIsLoading(false);
+        if (!isForceLoggedOut.current) {
+          setIsLoading(false);
+        } else {
+          setIsLoading(false);
+        }
       }
     };
     restoreSession();
@@ -71,6 +78,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     return authEvents.onForceLogout(() => {
+      isForceLoggedOut.current = true;
       setUser(null);
       setError(null);
     });

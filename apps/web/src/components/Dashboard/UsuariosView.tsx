@@ -9,7 +9,7 @@ import { DB_ROLES, ROLE_ID_TO_NAME } from '../../config/rbac.constants';
 import { ModalOverlay, ConfirmModal, RecordDetailModal, DetailField } from './Shared/DashboardShared';
 import { guardClose, panelStyle } from './Shared/DashboardShared.utils';
 import type { GymDto, UserDto, UserRoleDto } from './Shared/DashboardTypes';
-import { Eye, Edit, Trash2, Plus, Building2, Search } from 'lucide-react';
+import { Eye, Edit, Trash2, Plus, Building2, Search, X } from 'lucide-react';
 
 
 //Interfaz para roles cargados dinámicamente 

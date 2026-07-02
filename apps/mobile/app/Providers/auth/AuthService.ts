@@ -253,13 +253,24 @@ export class AuthService {
   }
 
   /**
+   * Persiste un token renovado tras un refresh exitoso
+   */
+  static async saveToken(token: string): Promise<void> {
+    try {
+      await SecureStore.setItemAsync(TOKEN_STORAGE_KEY, token);
+    } catch (e) {
+      console.warn('[AuthService] Error guardando token:', e);
+    }
+  }
+
+  /**
    * Realiza logout
    */
   static async logout(): Promise<void> {
     try {
-      await SecureStore.deleteItemAsync(AUTH_STORAGE_KEY);
-      await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
-      await SecureStore.deleteItemAsync(PROFILE_CACHE_KEY);
+      await SecureStore.setItemAsync(AUTH_STORAGE_KEY, '');
+      await SecureStore.setItemAsync(TOKEN_STORAGE_KEY, '');
+      await SecureStore.setItemAsync(PROFILE_CACHE_KEY, '');
     } catch (e) {
       console.warn('[AuthService] Error en logout:', e);
     }

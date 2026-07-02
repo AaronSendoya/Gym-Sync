@@ -136,7 +136,7 @@ const AutoFitBounds = ({ sucursales }: { sucursales: SucursalMapaDTO[] }) => {
   useEffect(() => {
     if (fitted.current || sucursales.length === 0) return;
     const bounds = L.latLngBounds(sucursales.map(s => [s.latitude, s.longitude]));
-    map.fitBounds(bounds, { padding: [48, 48], maxZoom: 14 });
+    map.fitBounds(bounds, { padding: [48, 48], maxZoom: 14, animate: false });
     fitted.current = true;
   }, [sucursales, map]);
   return null;
