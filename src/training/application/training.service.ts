@@ -4,12 +4,13 @@ import {
   ForbiddenException,
   NotFoundException,
   BadRequestException,
+  ConflictException,
   Scope,
   Logger,
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DeepPartial } from 'typeorm';
+import { Repository, DeepPartial, IsNull } from 'typeorm';
 import { UserTraining } from '../domain/user-training.entity';
 import { UserTrainingGoals } from '../domain/user-training-goals.entity';
 import { UserTrainingPreferences } from '../domain/user-training-preferences.entity';
@@ -328,6 +329,23 @@ export class TrainingService {
       throw new BadRequestException(
         'No se puede guardar una sesión de menos de 1 minuto sin series registradas.',
       );
+    }
+
+    // Prevenir sesiones paralelas para la misma rutina
+    const targetUserId = Number(sData.userId ?? this.request.user?.userId ?? 0);
+    if (targetUserId && sData.routineId) {
+      const activeSession = await this.sessionsRepo.findOne({
+        where: {
+          userId: targetUserId,
+          routineId: Number(sData.routineId),
+          finishedAt: IsNull(),
+        },
+      });
+      if (activeSession) {
+        throw new ConflictException(
+          'Ya tienes una sesión activa para esta rutina. Finalízala antes de iniciar una nueva.',
+        );
+      }
     }
 
     const sessionData: DeepPartial<WorkoutSession> = { ...sData };

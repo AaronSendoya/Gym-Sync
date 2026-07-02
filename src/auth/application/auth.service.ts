@@ -262,6 +262,37 @@ export class AuthService {
     return this.usersService.findOne(userId);
   }
 
+  async refreshToken(expiredToken: string): Promise<{ accessToken: string }> {
+    let payload: { sub: number; exp?: number } | null = null;
+    try {
+      payload = this.jwtService.verify<{ sub: number; exp?: number }>(
+        expiredToken,
+        { ignoreExpiration: true } as any,
+      );
+    } catch {
+      throw new UnauthorizedException('Token inválido.');
+    }
+
+    if (!payload?.sub) throw new UnauthorizedException('Token inválido.');
+
+    if (payload.exp) {
+      const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+      if (Date.now() > payload.exp * 1000 + THIRTY_DAYS_MS) {
+        throw new UnauthorizedException(
+          'El token es demasiado antiguo para renovar. Inicia sesión nuevamente.',
+        );
+      }
+    }
+
+    const user = await this.usersService.findOne(payload.sub);
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Cuenta no encontrada o desactivada.');
+    }
+
+    const newPayload = await this.buildJwtPayload({ id: user.id, email: user.email });
+    return { accessToken: this.jwtService.sign(newPayload) };
+  }
+
   /**
    * Genera un OTP de 6 dígitos, lo guarda en la BD con expiración de 15 min
    * y lo imprime en consola (mock de correo).

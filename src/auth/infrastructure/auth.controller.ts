@@ -202,6 +202,32 @@ export class AuthController {
     }
   }
 
+  @Public()
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Renovar JWT expirado sin re-login (grace period 30 días)' })
+  @ApiResponse({ status: 200, description: 'Nuevo accessToken emitido' })
+  @ApiResponse({ status: 401, description: 'Token inválido o demasiado antiguo' })
+  async refresh(
+    @Request() req: any,
+    @Response({ passthrough: true }) res: ExpressResponse,
+  ) {
+    try {
+      const authHeader: string | undefined = req.headers['authorization'];
+      const cookieToken: string | undefined = req.cookies?.['access_token'];
+      const token = authHeader?.startsWith('Bearer ')
+        ? authHeader.slice(7)
+        : cookieToken;
+      if (!token) throw new Error('Token no proporcionado.');
+      const result = await this.authService.refreshToken(token);
+      this.setAuthCookie(res, result.accessToken);
+      return result;
+    } catch (error: any) {
+      this.logError('refresh', error);
+      throw error;
+    }
+  }
+
   /** Verifica el OTP y actualiza la contraseña. */
   @Public()
   @Post('reset-password')

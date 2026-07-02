@@ -21,14 +21,14 @@ export class CreateActivityDto {
   @IsString({ message: 'El nombre del servicio debe ser texto' })
   @MinLength(2, { message: 'El nombre debe tener al menos 2 caracteres' })
   @MaxLength(100, { message: 'El nombre no puede superar los 100 caracteres' })
-  @Matches(/^(?!.*[bcdfghjklmnñpqrstvwxyz]{5,}).*$/i, { message: 'El nombre parece contener texto aleatorio o inválido' })
+  @Matches(/^(?![\s\S]*[bcdfghjklmnñpqrstvwxyz]{5,})[\s\S]*$/i, { message: 'El nombre parece contener texto aleatorio o inválido' })
   name: string;
 
   @ApiProperty({ example: 'Clase de ciclismo indoor de alta intensidad' })
   @IsString({ message: 'La descripción debe ser texto' })
   @MinLength(5, { message: 'La descripción debe tener al menos 5 caracteres' })
-  @MaxLength(500, { message: 'La descripción no puede superar los 500 caracteres' })
-  @Matches(/^(?!.*[bcdfghjklmnñpqrstvwxyz]{5,}).*$/i, { message: 'La descripción parece contener texto aleatorio o inválido' })
+  @MaxLength(200, { message: 'La descripción no puede superar los 200 caracteres' })
+  @Matches(/^(?![\s\S]*[bcdfghjklmnñpqrstvwxyz]{5,})[\s\S]*$/i, { message: 'La descripción parece contener texto aleatorio o inválido' })
   description: string;
 
   @ApiPropertyOptional({ example: 45 })
@@ -61,14 +61,14 @@ export class UpdateActivityDto {
   @IsString()
   @MinLength(2, { message: 'El nombre debe tener al menos 2 caracteres' })
   @MaxLength(100, { message: 'El nombre no puede superar los 100 caracteres' })
-  @Matches(/^(?!.*[bcdfghjklmnñpqrstvwxyz]{5,}).*$/i, { message: 'El nombre parece contener texto aleatorio o inválido' })
+  @Matches(/^(?![\s\S]*[bcdfghjklmnñpqrstvwxyz]{5,})[\s\S]*$/i, { message: 'El nombre parece contener texto aleatorio o inválido' })
   name?: string;
 
   @ApiPropertyOptional({ example: 'Descripción actualizada' })
   @IsOptional()
   @IsString()
-  @MaxLength(500, { message: 'La descripción no puede superar los 500 caracteres' })
-  @Matches(/^(?!.*[bcdfghjklmnñpqrstvwxyz]{5,}).*$/i, { message: 'La descripción parece contener texto aleatorio o inválido' })
+  @MaxLength(200, { message: 'La descripción no puede superar los 200 caracteres' })
+  @Matches(/^(?![\s\S]*[bcdfghjklmnñpqrstvwxyz]{5,})[\s\S]*$/i, { message: 'La descripción parece contener texto aleatorio o inválido' })
   description?: string;
 
   @ApiPropertyOptional({ example: 60 })

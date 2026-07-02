@@ -18,8 +18,8 @@
     "test:cov": "NODE_OPTIONS=--localstorage-file=./.jest-localstorage jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "db:reset": "npx ts-node src/scripts/reset-db.ts",
-    "db:seed": "npx ts-node src/scripts/seeder.ts",
+    "db:reset": "node dist/scripts/reset-db.js",
+    "db:seed": "node dist/scripts/seeder.js",
     "db:clean-exercises": "npx ts-node src/scripts/reset-exercises.ts",
     "db:video-urls": "npx ts-node src/scripts/seed-video-urls.ts",
     "db:patch-role": "npx ts-node src/scripts/patch-role-user-to-cliente.ts"

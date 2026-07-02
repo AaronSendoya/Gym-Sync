@@ -8,10 +8,11 @@ import {
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder, IsNull } from 'typeorm';
+import { Repository, SelectQueryBuilder, IsNull, In } from 'typeorm';
 import { CheckIn } from '../domain/check-in.entity';
 import { UserRole } from '../../roles/domain/user-role.entity';
 import { Gym } from '../../gyms/domain/gym.entity';
+import { Reservation } from '../../reservations/domain/reservation.entity';
 import { GymGateway } from '../../notifications/infrastructure/gym.gateway';
 import {
   type RequestWithUser,
@@ -24,6 +25,7 @@ export class CheckinsService {
     @InjectRepository(CheckIn) private repo: Repository<CheckIn>,
     @InjectRepository(UserRole) private userRoleRepo: Repository<UserRole>,
     @InjectRepository(Gym) private gymRepo: Repository<Gym>,
+    @InjectRepository(Reservation) private reservationRepo: Repository<Reservation>,
     @Inject(REQUEST) private readonly request: RequestWithUser,
     @Optional() private readonly gymGateway?: GymGateway,
   ) {}
@@ -76,30 +78,52 @@ export class CheckinsService {
       relations: ['role'],
     });
 
+    const topLevel = assignments.reduce(
+      (max, a) => Math.max(max, a.role?.hierarchyLevel ?? 0),
+      0,
+    );
+    const isClient = topLevel <= 1;
     const isEligibleStaff = assignments.some((a) => {
       const lvl = a.role?.hierarchyLevel ?? 0;
       return lvl >= 2 && lvl <= 4;
     });
 
-    if (!isEligibleStaff) {
-      throw new ForbiddenException(
-        'Solo personal autorizado puede registrar ingreso.',
-      );
+    if (!isClient && !isEligibleStaff) {
+      throw new ForbiddenException('Nivel de rol no permite registro de ingreso.');
     }
 
-    const exactMatch = assignments.some(a => Number(a.gymId) === Number(gymId));
-    if (!exactMatch) {
-      const scanningGym = await this.gymRepo.findOne({
-        where: { id: Number(gymId) },
-        select: { id: true, name: true, parentId: true },
+    if (isClient) {
+      // Clientes requieren reserva activa para hoy en esta sede
+      const today = new Date().toISOString().slice(0, 10);
+      const reservation = await this.reservationRepo.findOne({
+        where: {
+          userId,
+          gymId,
+          reservationDate: today as any,
+          status: In(['CONFIRMADA', 'PENDIENTE']),
+        },
       });
-      const parentMatch = scanningGym?.parentId != null
-        ? assignments.some(a => Number(a.gymId) === scanningGym.parentId)
-        : false;
-      if (!parentMatch) {
+      if (!reservation) {
         throw new ForbiddenException(
-          `El personal no pertenece a la sucursal "${scanningGym?.name ?? `#${gymId}`}". No se puede registrar su ingreso aquí.`,
+          'El cliente no tiene una reserva activa para hoy en esta sede.',
         );
+      }
+    } else {
+      // Staff: validar que pertenece a la sucursal
+      const exactMatch = assignments.some(a => Number(a.gymId) === Number(gymId));
+      if (!exactMatch) {
+        const scanningGym = await this.gymRepo.findOne({
+          where: { id: Number(gymId) },
+          select: { id: true, name: true, parentId: true },
+        });
+        const parentMatch = scanningGym?.parentId != null
+          ? assignments.some(a => Number(a.gymId) === scanningGym.parentId)
+          : false;
+        if (!parentMatch) {
+          throw new ForbiddenException(
+            `El personal no pertenece a la sucursal "${scanningGym?.name ?? `#${gymId}`}". No se puede registrar su ingreso aquí.`,
+          );
+        }
       }
     }
 

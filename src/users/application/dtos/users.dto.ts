@@ -77,7 +77,7 @@ export class UpdateProfileDto {
   @MinLength(2, { message: 'El nombre debe tener al menos 2 caracteres' })
   @MaxLength(60, { message: 'El nombre no puede superar los 60 caracteres' })
   @Matches(/^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s'\-]+$/, { message: 'El nombre solo puede contener letras, espacios y guiones' })
-  @Matches(/^(?!.*[bcdfghjklmnñpqrstvwxyz]{5,}).*$/i, { message: 'El nombre parece contener texto aleatorio' })
+  @Matches(/^(?![\s\S]*[bcdfghjklmnñpqrstvwxyz]{5,})[\s\S]*$/i, { message: 'El nombre parece contener texto aleatorio' })
   firstName?: string;
 
   @ApiPropertyOptional({ example: 'López' })
@@ -86,7 +86,7 @@ export class UpdateProfileDto {
   @MinLength(2, { message: 'El apellido debe tener al menos 2 caracteres' })
   @MaxLength(60, { message: 'El apellido no puede superar los 60 caracteres' })
   @Matches(/^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s'\-]+$/, { message: 'El apellido solo puede contener letras, espacios y guiones' })
-  @Matches(/^(?!.*[bcdfghjklmnñpqrstvwxyz]{5,}).*$/i, { message: 'El apellido parece contener texto aleatorio' })
+  @Matches(/^(?![\s\S]*[bcdfghjklmnñpqrstvwxyz]{5,})[\s\S]*$/i, { message: 'El apellido parece contener texto aleatorio' })
   lastName?: string;
 
   @ApiPropertyOptional({ example: '+59170099999' })
@@ -198,7 +198,7 @@ export class CreateUserDto {
   @MinLength(2, { message: 'El nombre debe tener al menos 2 caracteres' })
   @MaxLength(60, { message: 'El nombre no puede superar los 60 caracteres' })
   @Matches(/^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s'\-]+$/, { message: 'El nombre solo puede contener letras, espacios y guiones' })
-  @Matches(/^(?!.*[bcdfghjklmnñpqrstvwxyz]{5,}).*$/i, { message: 'El nombre parece contener texto aleatorio' })
+  @Matches(/^(?![\s\S]*[bcdfghjklmnñpqrstvwxyz]{5,})[\s\S]*$/i, { message: 'El nombre parece contener texto aleatorio' })
   firstName!: string;
 
   @ApiProperty({ example: 'Admin', description: 'Apellido' })
@@ -207,7 +207,7 @@ export class CreateUserDto {
   @MinLength(2, { message: 'El apellido debe tener al menos 2 caracteres' })
   @MaxLength(60, { message: 'El apellido no puede superar los 60 caracteres' })
   @Matches(/^[a-záéíóúüñA-ZÁÉÍÓÚÜÑ\s'\-]+$/, { message: 'El apellido solo puede contener letras, espacios y guiones' })
-  @Matches(/^(?!.*[bcdfghjklmnñpqrstvwxyz]{5,}).*$/i, { message: 'El apellido parece contener texto aleatorio' })
+  @Matches(/^(?![\s\S]*[bcdfghjklmnñpqrstvwxyz]{5,})[\s\S]*$/i, { message: 'El apellido parece contener texto aleatorio' })
   lastName!: string;
 
   @ApiPropertyOptional({

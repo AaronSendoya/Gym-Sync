@@ -75,7 +75,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME || 'postgres',
   password: process.env.DB_PASSWORD || 'gymsync_dev_only',
   database: process.env.DB_DATABASE || 'gymsync_db',
-  synchronize: process.env.NODE_ENV !== 'production',
+  synchronize: true,
   logging: process.env.NODE_ENV === 'development',
 
   // 🔥 LISTA COMPLETA DE ENTIDADES (33 en total)

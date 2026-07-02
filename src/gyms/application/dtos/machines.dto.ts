@@ -15,7 +15,7 @@ export class CreateMachineDto {
   @IsString({ message: 'El nombre debe ser texto' })
   @MinLength(2, { message: 'El nombre debe tener al menos 2 caracteres' })
   @MaxLength(100, { message: 'El nombre no puede superar los 100 caracteres' })
-  @Matches(/^(?!.*[bcdfghjklmnñpqrstvwxyz]{5,}).*$/i, { message: 'El nombre parece contener texto aleatorio o inválido' })
+  @Matches(/^(?![\s\S]*[bcdfghjklmnñpqrstvwxyz]{5,})[\s\S]*$/i, { message: 'El nombre parece contener texto aleatorio o inválido' })
   name!: string;
 
   @ApiProperty({ example: 11, description: 'ID de la sucursal física' })
@@ -52,7 +52,7 @@ export class UpdateMachineDto {
   @IsString()
   @MinLength(2, { message: 'El nombre debe tener al menos 2 caracteres' })
   @MaxLength(100, { message: 'El nombre no puede superar los 100 caracteres' })
-  @Matches(/^(?!.*[bcdfghjklmnñpqrstvwxyz]{5,}).*$/i, { message: 'El nombre parece contener texto aleatorio o inválido' })
+  @Matches(/^(?![\s\S]*[bcdfghjklmnñpqrstvwxyz]{5,})[\s\S]*$/i, { message: 'El nombre parece contener texto aleatorio o inválido' })
   name?: string;
 
   @ApiPropertyOptional({
