@@ -170,7 +170,7 @@ export const InstructorReportScreen = () => {
   // ── Fetch schedules defensively ─────────────────────────────────────────────
   const { data: rawSchedules, isLoading } = useQuery({
     queryKey:  ['instructor-weekly-schedules'],
-    queryFn:   staffApi.getMyWeeklySchedules,
+    queryFn:   () => staffApi.getMyWeeklySchedules(),
     staleTime: 5 * 60_000,
     retry: 1,
   });

@@ -7,6 +7,8 @@ import {
   ReservationResponse,
   UserReservation,
   SubscriptionStatus,
+  ActiveMembership,
+  CheckinCalendarDto,
 } from './reservation.types';
 import { AuthService } from '../../auth/AuthService';
 import { attach401Guard } from '../../auth/axios401Guard';
@@ -277,7 +279,35 @@ export const reservationApi = {
     // El endpoint devuelve un array, tomamos la más reciente
     const data = response.data?.data ?? response.data;
     const subs = Array.isArray(data) ? data : [data];
-    const active = subs.find((s: any) => s.status === 'ACTIVO' || s.isActive) ?? subs[0];
+    const active =
+      subs.find((s: any) => s.status === 'ACTIVA' || s.status === 'ACTIVO' || s.isActive) ??
+      subs[0];
     return active;
+  },
+
+  /**
+   * GET /api/subscriptions/me/active
+   * Membresía activa del usuario autenticado, enriquecida con días restantes
+   * y sesiones usadas/restantes (planes por sesiones). null si no tiene.
+   */
+  getMyActiveMembership: async (): Promise<ActiveMembership | null> => {
+    const response = await reservationClient.get('/api/subscriptions/me/active');
+    const data = response.data?.data ?? response.data;
+    if (!data || typeof data !== 'object' || !('id' in data)) return null;
+    return data as ActiveMembership;
+  },
+
+  /**
+   * GET /api/subscriptions/checkin-calendar/me
+   * Calendario mensual de check-ins de la propia membresía (carnet visual).
+   * `month` en formato 'YYYY-MM' — sin especificar, el backend usa el mes actual.
+   */
+  getMyCheckinCalendar: async (month?: string): Promise<CheckinCalendarDto | null> => {
+    const response = await reservationClient.get('/api/subscriptions/checkin-calendar/me', {
+      params: month ? { month } : undefined,
+    });
+    const data = response.data?.data ?? response.data;
+    if (!data || typeof data !== 'object' || !('subscriptionId' in data)) return null;
+    return data as CheckinCalendarDto;
   },
 };

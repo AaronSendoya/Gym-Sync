@@ -26,7 +26,7 @@ export function ReporteAuditoriaPdf({ data }: { data: AuditoriaPdfData }) {
 
           <PdfSectionTitle>Registro de Accesos ({data.rows.length} entradas)</PdfSectionTitle>
           <PdfTable
-            headers={['#', 'Fecha y hora', 'Usuario', 'Rol', 'Sede']}
+            headers={['#', 'Fecha y hora', 'Usuario', 'Rol', 'Sucursal']}
             rows={data.rows.map((r, i) => [String(i + 1), r.datetime, r.user, r.role, r.gym])}
             accent={ORANGE}
           />

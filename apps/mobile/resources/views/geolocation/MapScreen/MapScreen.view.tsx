@@ -166,7 +166,7 @@ export const MapScreenView: React.FC<MapScreenViewProps> = ({
                 <MaterialCommunityIcons name="chevron-left" size={22} color="#fff" />
               </TouchableOpacity>
               <View style={styles.headerTextCol}>
-                <Text style={styles.headerTitle}>Sedes Cercanas</Text>
+                <Text style={styles.headerTitle}>Sucursales Cercanas</Text>
                 <Text style={styles.headerSubtitle}>
                   {sedes.length} {sedes.length === 1 ? 'resultado encontrado' : 'resultados encontrados'}
                 </Text>

@@ -7,6 +7,7 @@ import * as Location from 'expo-location';
 import { Audio } from 'expo-av';
 import { ClientRoutine, ClientRoutineExercise } from '../../../app/Providers/staff/api/staff.api';
 import { trainingApi } from '../../../app/Providers/training/api/training.api';
+import { OfflineSessions } from '../../../app/Providers/offline/OfflineSessions';
 import { ExerciseDetailModal } from '../../components/ExerciseDetailModal';
 import { DumbbellSpinner } from '../../../app/Shared/components/ui/DumbbellSpinner';
 
@@ -76,10 +77,10 @@ const fmt = (ms: number) => {
   return `${m}:${s}:${msPart}`;
 };
 
-const getExerciseCover = (imageUrl?: string | null, equipment: string = '') => {
+const getExerciseCover = (imageUrl?: string | null, equipment?: string | null) => {
   if (imageUrl) return imageUrl;
 
-  const eq = equipment.toLowerCase();
+  const eq = (equipment ?? '').toLowerCase();
   if (eq.includes('mancuerna')) return 'https://images.pexels.com/photos/3289711/pexels-photo-3289711.jpeg?auto=compress&cs=tinysrgb&w=600';
   if (eq.includes('barra')) return 'https://images.pexels.com/photos/949126/pexels-photo-949126.jpeg?auto=compress&cs=tinysrgb&w=600';
   if (eq.includes('polea') || eq.includes('máquina') || eq.includes('prensa')) return 'https://images.pexels.com/photos/1954524/pexels-photo-1954524.jpeg?auto=compress&cs=tinysrgb&w=600';
@@ -102,6 +103,9 @@ export const EjecutarRutinaScreen = () => {
   const [gymId,     setGymId]     = useState<number | null>(null);
   const [gymLabel,  setGymLabel]  = useState<string>('Fuera de Sucursales');
   const [sessionId, setSessionId] = useState<number | null>(null);
+  // Sesión offline: el servidor no respondió al iniciar — todo se registra
+  // localmente y al finalizar se guarda en SQLite para sincronización posterior.
+  const [offlineMode, setOfflineMode] = useState(false);
   const [sets,      setSets]      = useState<SetRow[]>(() => buildSets(exercise));
   const [cursor,    setCursor]    = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -224,19 +228,28 @@ export const EjecutarRutinaScreen = () => {
         clearInterval(tick);
         if (!cleanedUp) {
           (async () => {
+            setPhase('active');
             try {
-              setPhase('active');
               const session = await trainingApi.startRoutineSession({
                 routineId: routine.id,
                 gymId,
                 sportType: (logType === 'TIME_DISTANCE' || logType === 'TIME_ONLY') ? 'CARDIO' : 'MUSCULACION',
               });
-              setSessionId(session.id);
-              startTimer();
+              if (session?.id) {
+                setSessionId(session.id);
+              } else {
+                // Respuesta sin id (ej. encolada offline) → modo local
+                setOfflineMode(true);
+              }
             } catch {
-              Alert.alert('Error', 'No se pudo iniciar la sesión. Revisa tu conexión.');
-              setPhase('ready');
+              // Sin conexión: la sesión corre 100% local y se sincroniza después.
+              setOfflineMode(true);
+              Alert.alert(
+                'Modo sin conexión',
+                'Tu entrenamiento se guardará en el teléfono y se sincronizará automáticamente cuando vuelva el internet.',
+              );
             }
+            startTimer();
           })();
         }
       }
@@ -253,29 +266,38 @@ export const EjecutarRutinaScreen = () => {
   // ── Start session ────────────────────────────────────────────────────────────
   const handleStart = () => setPhase('countdown');
 
-  // ── Complete a set ───────────────────────────────────────────────────────────
-  const handleCompleteSet = async () => {
-    if (!sessionId) return;
-    const set = sets[cursor];
+  // ── Serialización de un SetRow al formato del backend según logType ─────────
+  const setRowToPayload = (row: SetRow) => {
     const base = {
       routineExerciseId: exercise.id,
       exerciseId:        exercise.exercise?.id ?? undefined,
-      setNumber:         set.setNumber,
+      setNumber:         row.setNumber,
     };
-
     switch (logType) {
-      case 'WEIGHT_REPS':
-        trainingApi.addSet(sessionId, { ...base, repsCompleted: parseInt(set.repsInput) || 0, weightUsedKg: parseFloat(set.weightInput) || 0 }).catch(() => {});
-        break;
       case 'REPS_ONLY':
-        trainingApi.addSet(sessionId, { ...base, repsCompleted: parseInt(set.repsInput) || 0 }).catch(() => {});
-        break;
+        return { ...base, repsCompleted: parseInt(row.repsInput) || 0 };
       case 'TIME_DISTANCE':
-        trainingApi.addSet(sessionId, { ...base, durationSeconds: Math.round((parseFloat(set.durationInput) || 0) * 60), distanceMeters: Math.round((parseFloat(set.speedInput) || 0) * (parseFloat(set.durationInput) || 0) * 1000 / 60) }).catch(() => {});
-        break;
+        return { ...base, durationSeconds: Math.round((parseFloat(row.durationInput) || 0) * 60), distanceMeters: Math.round((parseFloat(row.speedInput) || 0) * (parseFloat(row.durationInput) || 0) * 1000 / 60) };
       case 'TIME_ONLY':
-        trainingApi.addSet(sessionId, { ...base, durationSeconds: Math.round((parseFloat(set.durationInput) || 0) * 60) }).catch(() => {});
-        break;
+        return { ...base, durationSeconds: Math.round((parseFloat(row.durationInput) || 0) * 60) };
+      case 'WEIGHT_REPS':
+      default:
+        return { ...base, repsCompleted: parseInt(row.repsInput) || 0, weightUsedKg: parseFloat(row.weightInput) || 0 };
+    }
+  };
+
+  // ── Complete a set ───────────────────────────────────────────────────────────
+  const handleCompleteSet = async () => {
+    if (!sessionId && !offlineMode) return;
+    const set = sets[cursor];
+
+    // Online: enviar el set de inmediato. Si la red cae a mitad de sesión, el
+    // interceptor offline encola el POST y se sincroniza al reconectar.
+    // Offline: no se envía nada — los sets viajan completos al finalizar.
+    if (sessionId) {
+      try {
+        trainingApi.addSet(sessionId, setRowToPayload(set)).catch(() => {});
+      } catch { /* nunca romper el flujo de la sesión */ }
     }
 
     const next = sets.map((s, i) => i === cursor ? { ...s, done: true } : s);
@@ -314,15 +336,46 @@ export const EjecutarRutinaScreen = () => {
   };
 
   const finishSession = async (finalSets: SetRow[], status: 'COMPLETED' | 'PARTIAL') => {
-    if (!sessionId || phase === 'finishing') return;
+    if ((!sessionId && !offlineMode) || phase === 'finishing') return;
     setPhase('finishing');
     if (timerRef.current) clearInterval(timerRef.current);
-    try { await trainingApi.finishSession(sessionId, status, elapsed); } catch {/**/}
+
+    let savedOffline = false;
+
+    if (sessionId) {
+      // Online (o red caída a mitad: el interceptor encola el PUT)
+      try { await trainingApi.finishSession(sessionId, status, elapsed); } catch {/**/}
+    } else {
+      // Sesión 100% offline: guardar payload completo (sesión + sets) en SQLite.
+      // El SyncManager la enviará como un único POST /sessions/completed.
+      try {
+        const doneSets = finalSets.filter(r => r.done).map(setRowToPayload);
+        // El backend rechaza sesiones vacías de < 1 min: si no hay nada que
+        // guardar, no se encola (no hay progreso que perder).
+        if (doneSets.length > 0 || elapsed >= 60) {
+          const localId = await OfflineSessions.enqueue(
+            {
+              routineId:       routine.id,
+              gymId:           gymId ?? undefined,
+              sportType:       (logType === 'TIME_DISTANCE' || logType === 'TIME_ONLY') ? 'CARDIO' : 'MUSCULACION',
+              durationSeconds: elapsed,
+              sets:            doneSets,
+            },
+            { routineName: routine.name, exerciseName: exercise.exercise?.name ?? '' },
+          );
+          savedOffline = localId !== null;
+        }
+      } catch { /* la navegación al resumen ocurre igual */ }
+    }
 
     navigation.replace('ResumenEjercicio', {
       status,
-      label:        status === 'COMPLETED' ? 'Completada' : 'Parcial',
-      color:        status === 'COMPLETED' ? '#22c55e' : '#facc15',
+      label:        savedOffline
+        ? 'Guardada offline'
+        : status === 'COMPLETED' ? 'Completada' : 'Parcial',
+      color:        savedOffline
+        ? '#f59e0b'
+        : status === 'COMPLETED' ? '#22c55e' : '#facc15',
       routineName:  routine.name,
       exerciseName: exercise.exercise?.name ?? 'Ejercicio',
       elapsed,

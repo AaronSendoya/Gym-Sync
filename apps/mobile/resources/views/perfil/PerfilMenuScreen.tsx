@@ -99,6 +99,11 @@ export const PerfilMenuScreen = () => {
         description: 'Tu plan de alimentación personalizado por tu asesor',
         action: () => navigation.navigate('MiPlan' as any), personalized: true,
       },
+      {
+        icon: 'card-account-details-outline', label: 'Mi Membresía',
+        description: 'Tu plan vigente, fecha de inscripción y vencimiento',
+        action: () => navigation.navigate('MiMembresia' as any),
+      },
     ] : []),
     {
       icon: 'bell-ring', label: 'Alertas de salud',

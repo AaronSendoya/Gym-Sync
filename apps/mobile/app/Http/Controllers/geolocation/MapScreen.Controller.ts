@@ -83,7 +83,7 @@ export const MapScreenController = (
         store.setError(result.value.mensajeUsuario ?? result.value.message);
       }
     } catch (err) {
-      store.setError('Error de conexión al buscar sedes cercanas.');
+      store.setError('Error de conexión al buscar sucursales cercanas.');
     } finally {
       store.setLoading(false);
     }

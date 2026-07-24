@@ -56,7 +56,7 @@ export class MockAccessApiAdapter implements IAccessApiService {
         new MetodoAcceso(Math.random() > 0.7 ? TipoMetodoAcceso.QR : (Math.random() > 0.5 ? TipoMetodoAcceso.BIOMETRIA : TipoMetodoAcceso.PIN)),
         new EstadoAcceso(
           isAuthorized ? TipoEstadoAcceso.AUTORIZADO : TipoEstadoAcceso.DENEGADO,
-          isAuthorized ? undefined : 'Membresía caducada o sede incorrecta'
+          isAuthorized ? undefined : 'Membresía caducada o sucursal incorrecta'
         ),
         { nombre: user.nombre, email: user.email, avatarUrl: user.avatar },
         { nombre: gym.nombre, direccion: gym.direccion, coordenadas: { lat: gym.lat, lng: gym.lng } }

@@ -193,7 +193,7 @@ export const StaffMapScreen: React.FC = () => {
           initialCenter={INITIAL_CENTER}
           initialZoom={13}
           interactive
-          style={StyleSheet.absoluteFill}
+          style={StyleSheet.absoluteFillObject}
         />
 
         {/* Attribution */}

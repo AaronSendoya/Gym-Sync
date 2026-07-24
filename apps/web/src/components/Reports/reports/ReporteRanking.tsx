@@ -120,8 +120,8 @@ export function ReporteRanking({ filters, onCsvReady, onPdfDataReady }: Props) {
         period: `${fmtDate(filters.range.from)} — ${fmtDate(filters.range.to)}`,
         genAt,
         kpis: [
-          { label: 'Sedes rankeadas', value: String(ranked.length), accent: '#6B7280' },
-          { label: 'Sede líder',      value: ranked[0]?.name ?? '—', accent: '#F59E0B' },
+          { label: 'Sucursales rankeadas', value: String(ranked.length), accent: '#6B7280' },
+          { label: 'Sucursal líder',      value: ranked[0]?.name ?? '—', accent: '#F59E0B' },
           { label: 'Score promedio',  value: `${avgScore}/100`,       accent: '#FF5E00' },
         ],
         top3: ranked.slice(0, 3).map(r => ({ name: r.name, brand: r.brand, score: r.score })),
@@ -141,7 +141,7 @@ export function ReporteRanking({ filters, onCsvReady, onPdfDataReady }: Props) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 400, gap: 14 }}>
         <Loader2 size={28} style={{ color: '#FF5E00', animation: 'spin 1s linear infinite' }} />
-        <p style={{ color: '#6B7280', fontSize: 13 }}>Calculando ranking de sedes...</p>
+        <p style={{ color: '#6B7280', fontSize: 13 }}>Calculando ranking de sucursales...</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -149,13 +149,13 @@ export function ReporteRanking({ filters, onCsvReady, onPdfDataReady }: Props) {
 
   return (
     <div id="report-content" style={{ width: 900, backgroundColor: '#ffffff', fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif", color: '#111827' }}>
-      <ReportHeader title="Ranking de Sedes" />
+      <ReportHeader title="Ranking de Sucursales" />
       <ReportMetaStrip from={filters.range.from} to={filters.range.to} genAt={genAt} />
 
       <div style={{ padding: '28px 40px 40px' }}>
         <ReportKpiGrid kpis={[
-          { label: 'Sedes rankeadas', value: ranked.length.toString(),  accent: '#6B7280' },
-          { label: 'Sede líder',      value: ranked[0]?.name ?? '—',   accent: GOLD      },
+          { label: 'Sucursales rankeadas', value: ranked.length.toString(),  accent: '#6B7280' },
+          { label: 'Sucursal líder',      value: ranked[0]?.name ?? '—',   accent: GOLD      },
           { label: 'Score promedio',  value: `${avgScore}/100`,         accent: ORANGE    },
         ]} />
 
@@ -164,7 +164,7 @@ export function ReporteRanking({ filters, onCsvReady, onPdfDataReady }: Props) {
         {/* Podio Top 3 */}
         {top3.length >= 1 && (
           <>
-            <ReportSectionTitle>Podio — Top 3 Sedes</ReportSectionTitle>
+            <ReportSectionTitle>Podio — Top 3 Sucursales</ReportSectionTitle>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: 24, height: 220 }}>
               {/* Reorder: 2nd, 1st, 3rd */}
               {[top3[1], top3[0], top3[2]].map((sede, idx) => {
@@ -192,7 +192,7 @@ export function ReporteRanking({ filters, onCsvReady, onPdfDataReady }: Props) {
         {/* Bar chart top 10 */}
         {chartData.length > 0 && (
           <>
-            <ReportSectionTitle>Score por Sede — Top {chartData.length}</ReportSectionTitle>
+            <ReportSectionTitle>Score por Sucursal — Top {chartData.length}</ReportSectionTitle>
             <div id="chart-ranking-bar">
             <BarChart width={820} height={200} data={chartData} margin={{ top: 4, right: 16, bottom: 20, left: -16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />

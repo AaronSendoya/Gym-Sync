@@ -110,7 +110,7 @@ export const VisitedGymMapScreen: React.FC = () => {
             initialCenter={initialCenter}
             initialZoom={DELTA_ZOOM}
             interactive
-            style={StyleSheet.absoluteFill}
+            style={StyleSheet.absoluteFillObject}
           />
 
           {/* Attribution */}

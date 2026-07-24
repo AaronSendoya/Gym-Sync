@@ -8,7 +8,7 @@ import { getRoutesForRole } from '../../config/roles.config';
 import './DashboardLayout.css';
 
 export const DashboardLayout = () => {
-  const { isAuthenticated, user, logout, isLoading } = useAuth();
+  const { isAuthenticated, user, logout, isLoading, isServerDown } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -35,6 +35,15 @@ export const DashboardLayout = () => {
   }
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
+  // Bloqueo rígido de plataforma: la web es exclusiva de niveles >= 4
+  // (Recepcionista, Gerente, Super Admin). Instructores/Entrenadores (2-3) y
+  // Clientes (1) operan solo desde la app móvil. Cubre TODAS las rutas hijas
+  // de /dashboard — incluida /dashboard/resumen, que no pasa por RoleGuard —
+  // y la hidratación con cookie válida obtenida fuera del formulario de login.
+  if ((user?.level ?? 0) < 4) {
+    return <Navigate to="/login" replace />;
+  }
+
   const handleLogout = async () => {
     await logout();
     navigate('/login', { replace: true });
@@ -52,6 +61,14 @@ export const DashboardLayout = () => {
 
   return (
     <div className="flex h-screen w-full bg-gray-100 text-gray-900 dark:bg-bg-deep dark:text-text-main overflow-hidden font-sans">
+
+      {/* ── Banner de reconexión: backend temporalmente no disponible ───────── */}
+      {isServerDown && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-amber-500 px-4 py-1.5 text-sm font-medium text-black">
+          <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-black border-t-transparent" />
+          Conexión con el servidor perdida. Reintentando automáticamente...
+        </div>
+      )}
 
       {/* ── Overlay móvil ───────────────────────────────────────────────────── */}
       {isSidebarOpen && (

@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../infrastructure/api.config';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
@@ -15,7 +15,7 @@ L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, 
 import { ModalOverlay, ConfirmModal, RecordDetailModal, DetailField } from './Shared/DashboardShared';
 import { guardClose, panelStyle } from './Shared/DashboardShared.utils';
 import type { GymDto, GymScheduleDto } from './Shared/DashboardTypes';
-import { Eye, Edit, Trash2, Search, X } from 'lucide-react';
+import { Eye, Edit, Trash2, Search, X, LocateFixed } from 'lucide-react';
 
 
 const HOURS_24_S   = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
@@ -120,6 +120,58 @@ const LocationMarker = ({ position, setPosition }: LocationMarkerProps) => {
 
   return (
     <Marker position={position}></Marker>
+  );
+};
+
+/** Control propio de Leaflet: centra el mapa en la ubicación actual del navegador. */
+const LocateMeControl = () => {
+  const map = useMap();
+  const [locating, setLocating] = useState(false);
+
+  const handleLocate = () => {
+    if (!navigator.geolocation) {
+      toast.error('Tu navegador no soporta geolocalización.');
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        map.flyTo([pos.coords.latitude, pos.coords.longitude], 16);
+        setLocating(false);
+      },
+      () => {
+        toast.error('No se pudo obtener tu ubicación actual.');
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleLocate}
+      disabled={locating}
+      title="Ir a mi ubicación actual"
+      style={{
+        position: 'absolute',
+        top: '10px',
+        right: '10px',
+        zIndex: 1000,
+        width: '34px',
+        height: '34px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#fff',
+        border: '2px solid rgba(0,0,0,0.2)',
+        borderRadius: '4px',
+        cursor: locating ? 'wait' : 'pointer',
+        padding: 0,
+      }}
+    >
+      <LocateFixed size={18} color={locating ? '#999' : '#1C1C1E'} />
+    </button>
   );
 };
 
@@ -350,6 +402,7 @@ const SucursalModal = ({ isOpen, onClose, level, sucursalToEdit, onSave, parentG
                       position={[lat, lng]}
                       setPosition={(pos: L.LatLng) => fetchAddress(pos)}
                     />
+                    <LocateMeControl />
                   </MapContainer>
                 </div>
               </>
@@ -561,7 +614,7 @@ export const SucursalesView = () => {
   const [filterEstado,  setFilterEstado]  = useState<'all' | 'activa' | 'inactiva' | 'abierta' | 'cerrada'>('all');
   const [sortOrder,     setSortOrder]     = useState<'az' | 'za' | 'cap_asc' | 'cap_desc'>('az');
 
-  // Opciones de sedes ordenadas A→Z
+  // Opciones de marcas ordenadas A→Z
   const parentOptions = useMemo(() =>
     Object.entries(parentGyms)
       .map(([id, name]) => ({ id: Number(id), name }))
@@ -746,7 +799,7 @@ export const SucursalesView = () => {
               className="w-full bg-white dark:bg-bg-deep border border-gray-300 dark:border-gray-700 text-slate-900 dark:text-gray-100 rounded-md pl-9 pr-4 py-2 text-sm focus:outline-none placeholder:text-slate-400 dark:placeholder:text-gray-500"
             />
           </div>
-          {/* Sede principal */}
+          {/* Marca principal */}
           {parentOptions.length > 0 && (
             <div style={{ position: 'relative' }}>
               <select value={filterParent} onChange={e => setFilterParent(e.target.value)}

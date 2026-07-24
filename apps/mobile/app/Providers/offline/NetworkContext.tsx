@@ -34,9 +34,13 @@ export const NetworkProvider = ({ children }: { children: React.ReactNode }) => 
   const prevOnline = useRef(true);
 
   const refreshPendingCount = async () => {
-    const { OfflineQueue } = await import('./OfflineQueue');
-    const c = await OfflineQueue.count();
-    setPendingCount(c);
+    try {
+      // Incluye mutaciones encoladas + sesiones de entrenamiento offline
+      const c = await SyncManager.pendingCount();
+      setPendingCount(c);
+    } catch {
+      // best-effort: el contador nunca debe romper el provider
+    }
   };
 
   useEffect(() => {

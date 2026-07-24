@@ -91,7 +91,7 @@ export function ReporteAforo({ filters, onCsvReady, onPdfDataReady }: Props) {
 
   useEffect(() => {
     if (!onCsvReady || isLoading) return;
-    const header = ['Sede', 'Marca', 'Ocupación actual', 'Capacidad máx.', 'Utilización%'];
+    const header = ['Sucursal', 'Marca', 'Ocupación actual', 'Capacidad máx.', 'Utilización%'];
     const csvRows = rows.map(r => [r.name, r.brand, String(r.occ), String(r.max), r.hasData ? String(r.pct) : '—']);
     onCsvReady([header, ...csvRows]);
   }, [rows, isLoading, onCsvReady]);

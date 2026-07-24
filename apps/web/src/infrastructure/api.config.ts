@@ -18,6 +18,28 @@ const handleAccessDenied = (message?: string) => {
   toast.error(message || 'Acceso Denegado: No tienes permisos para esta acción.');
 };
 
+// ── Renovación silenciosa de sesión ──────────────────────────────────────────
+// La cookie HttpOnly sobrevive a la expiración del JWT (grace period de 30 días
+// en el backend): ante un 401 se intenta POST /auth/refresh UNA vez y se repite
+// la petición original. Un solo refresh en vuelo compartido entre requests.
+let refreshInFlight: Promise<boolean> | null = null;
+
+const attemptCookieRefresh = (): Promise<boolean> => {
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      try {
+        await axios.post('/api/auth/refresh', {}, { withCredentials: true, timeout: 10000 });
+        return true;
+      } catch {
+        return false;
+      } finally {
+        refreshInFlight = null;
+      }
+    })();
+  }
+  return refreshInFlight;
+};
+
 export const createApiClient = (): AxiosInstance => {
   const client = axios.create({
     baseURL: '/api',
@@ -114,6 +136,15 @@ export const createApiClient = (): AxiosInstance => {
             { duration: 8000 },
           );
         } else if (status === 401) {
+          const cfg = error.config as (typeof error.config & { _retry?: boolean }) | undefined;
+          if (cfg && !cfg._retry && !url.includes('/auth/')) {
+            cfg._retry = true;
+            return attemptCookieRefresh().then((ok) => {
+              if (ok) return client(cfg);
+              forceLogout();
+              return Promise.reject(error);
+            });
+          }
           forceLogout();
         } else if (status === 403) {
           handleAccessDenied(errorMessage);

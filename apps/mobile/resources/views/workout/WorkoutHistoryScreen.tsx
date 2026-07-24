@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {View, Text, TouchableOpacity, StyleSheet, Modal, Animated, FlatList, ScrollView, RefreshControl, Dimensions} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { trainingApi, WorkoutSession, WorkoutSet } from '../../../app/Providers/training/api/training.api';
+import { cachedFetch } from '../../../app/Providers/offline/QueryCache';
+import { OfflineSessions } from '../../../app/Providers/offline/OfflineSessions';
+import { useNetwork } from '../../../app/Providers/offline/NetworkContext';
+import { useAuth } from '../../../app/Shared/hooks/useAuth';
 import { DumbbellSpinner } from '../../../app/Shared/components/ui/DumbbellSpinner';
 
 const { height: SCREEN_H } = Dimensions.get('window');
@@ -472,9 +476,24 @@ const DetailSheet = ({
 // ── Pantalla principal ────────────────────────────────────────────────────────
 export const WorkoutHistoryScreen = () => {
   const navigation = useNavigation<any>();
+  const { isOnline } = useNetwork();
+  const { user } = useAuth();
+  const userId = (user as any)?.userId ?? (user as any)?.id ?? 'anon';
 
   const [filter, setFilter]             = useState<FilterKey>('TODOS');
   const [selected, setSelected]         = useState<WorkoutSession | null>(null);
+  const [pendingSync, setPendingSync]   = useState(0);
+
+  // Entrenamientos guardados offline aún no sincronizados (refresca al enfocar)
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      OfflineSessions.count()
+        .then(c => { if (active) setPendingSync(c); })
+        .catch(() => {});
+      return () => { active = false; };
+    }, []),
+  );
 
   const {
     data: sessionsData,
@@ -485,8 +504,16 @@ export const WorkoutHistoryScreen = () => {
     hasNextPage,
     isFetchingNextPage
   } = useInfiniteQuery({
-    queryKey: ['workout-history'],
-    queryFn: ({ pageParam = 0 }) => trainingApi.getHistory({ limit: 20, offset: pageParam }),
+    queryKey: ['workout-history', userId],
+    // La primera página usa read-through cache SQLite POR USUARIO: offline se
+    // sirve el historial de la última conexión sin filtrar datos de otro
+    // usuario del mismo dispositivo.
+    queryFn: ({ pageParam = 0 }) =>
+      pageParam === 0
+        ? cachedFetch(`workout-history:first:${userId}`, () =>
+            trainingApi.getHistory({ limit: 20, offset: 0 }),
+          )
+        : trainingApi.getHistory({ limit: 20, offset: pageParam }),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => {
       if (!lastPage?.meta) return undefined;
@@ -522,6 +549,26 @@ export const WorkoutHistoryScreen = () => {
         <Text style={s.headerTitle}>Mi Historial</Text>
         <View style={s.headerRight} />
       </View>
+
+      {/* Estado offline / sincronización pendiente */}
+      {!isOnline && (
+        <View style={s.offlineBanner}>
+          <MaterialCommunityIcons name="wifi-off" size={14} color="#0a0a0a" />
+          <Text style={s.offlineBannerTxt}>
+            Sin conexión: mostrando datos de la última sincronización
+          </Text>
+        </View>
+      )}
+      {pendingSync > 0 && (
+        <View style={s.pendingBanner}>
+          <MaterialCommunityIcons name="cloud-upload-outline" size={14} color="#f59e0b" />
+          <Text style={s.pendingBannerTxt}>
+            {pendingSync === 1
+              ? '1 entrenamiento pendiente de sincronizar'
+              : `${pendingSync} entrenamientos pendientes de sincronizar`}
+          </Text>
+        </View>
+      )}
 
       {/* Chips de filtro */}
       <ScrollView
@@ -605,6 +652,18 @@ export const WorkoutHistoryScreen = () => {
 // ── Estilos pantalla ──────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
+
+  offlineBanner: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: '#f59e0b', paddingVertical: 5, paddingHorizontal: 12,
+  },
+  offlineBannerTxt: { color: '#0a0a0a', fontSize: 12, fontWeight: '600' },
+  pendingBanner: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: '#f59e0b22', paddingVertical: 5, paddingHorizontal: 12,
+    borderBottomWidth: 1, borderBottomColor: '#f59e0b44',
+  },
+  pendingBannerTxt: { color: '#f59e0b', fontSize: 12, fontWeight: '600' },
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

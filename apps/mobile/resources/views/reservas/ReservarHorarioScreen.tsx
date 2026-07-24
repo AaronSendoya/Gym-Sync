@@ -168,7 +168,16 @@ export const ReservarHorarioScreen = ({ route, navigation }: Props) => {
   const mutation = useMutation({
     mutationFn: (payload: CreateFreeReservationPayload) =>
       reservationApi.createFreeReservation(payload),
-    onSuccess: () => {
+    onSuccess: (data: any) => {
+      // El interceptor offline devuelve 202 con _offlineQueued cuando no hay
+      // red: la reserva quedó en cola local, NO confirmada por el servidor.
+      if (data?._offlineQueued) {
+        Alert.alert(
+          'Reserva pendiente',
+          'Sin conexión: tu reserva se guardó y se enviará automáticamente cuando vuelva el internet.',
+        );
+        return;
+      }
       Alert.alert('¡Reserva confirmada!', 'Tu reserva fue creada con éxito.', [
         {
           text: 'Ver mis reservas',
@@ -180,18 +189,25 @@ export const ReservarHorarioScreen = ({ route, navigation }: Props) => {
       const status = error?.response?.status;
       const msg = error?.response?.data?.message;
       if (status === 409) {
+        // Conflicto de negocio: reserva duplicada o cupo agotado
         Alert.alert(
-          'Reserva duplicada',
+          'Reserva no disponible',
           typeof msg === 'string' && msg.trim()
             ? msg
             : 'Ya tienes una reserva activa para este horario.',
+        );
+      } else if (!error?.response) {
+        // Error de red puro: el servidor nunca respondió
+        Alert.alert(
+          'Sin conexión',
+          'No se pudo contactar al servidor. Revisa tu conexión a internet e inténtalo de nuevo.',
         );
       } else {
         Alert.alert(
           'Error al reservar',
           typeof msg === 'string' && msg.trim()
             ? msg
-            : 'No se pudo completar la reserva. Verifica tu conexión e inténtalo de nuevo.',
+            : 'No se pudo completar la reserva. Inténtalo de nuevo.',
         );
       }
     },

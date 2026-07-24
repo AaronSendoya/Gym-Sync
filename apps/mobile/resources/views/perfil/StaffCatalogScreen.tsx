@@ -248,7 +248,7 @@ export const StaffCatalogScreen = () => {
     refetch: refetchReqs,
   } = useQuery({
     queryKey:  ['my-advisor-requests'],
-    queryFn:   staffApi.getMyAdvisorRequests,
+    queryFn:   () => staffApi.getMyAdvisorRequests(),
     staleTime: 30_000,
   });
   const myRequests: AdvisorRequestStatus[] = Array.isArray(myRequestsRaw)

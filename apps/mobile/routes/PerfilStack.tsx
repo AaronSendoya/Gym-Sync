@@ -11,6 +11,7 @@ import { CarnetVirtualScreen }       from '../resources/views/perfil/CarnetVirtu
 import { StaffCatalogScreen }        from '../resources/views/perfil/StaffCatalogScreen';
 import { MiPlanScreen }             from '../resources/views/perfil/MiPlanScreen';
 import { MiRutinaScreen }           from '../resources/views/perfil/MiRutinaScreen';
+import { MiMembresiaScreen }        from '../resources/views/perfil/MiMembresiaScreen';
 
 // ── Param lists ──────────────────────────────────────────────────────────────
 export type ClientePerfilParamList = {
@@ -24,6 +25,7 @@ export type ClientePerfilParamList = {
   StaffCatalog: undefined;
   MiPlan: undefined;
   MiRutina: undefined;
+  MiMembresia: undefined;
 };
 
 export type GerentePerfilParamList = {
@@ -57,6 +59,7 @@ export const ClientePerfilStack = () => (
     <ClienteStack.Screen name="StaffCatalog"      component={StaffCatalogScreen}         options={{ headerShown: false }} />
     <ClienteStack.Screen name="MiPlan"            component={MiPlanScreen}               options={{ headerShown: false }} />
     <ClienteStack.Screen name="MiRutina"          component={MiRutinaScreen}             options={{ headerShown: false }} />
+    <ClienteStack.Screen name="MiMembresia"       component={MiMembresiaScreen}          options={{ headerShown: false }} />
   </ClienteStack.Navigator>
 );
 

@@ -59,12 +59,13 @@ export const ModalOverlay = ({ children, onClose, maxWidth, isDirty, onFormChang
   );
 };
 
-export const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message }: {
+export const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmLabel = 'Confirmar Eliminación' }: {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
   title: string;
   message: string;
+  confirmLabel?: string;
 }) => {
   if (!isOpen) return null;
   return (
@@ -82,7 +83,7 @@ export const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message }: {
           className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-orange cursor-pointer border-0"
           onClick={onConfirm}
         >
-          Confirmar Eliminación
+          {confirmLabel}
         </button>
       </div>
     </ModalOverlay>

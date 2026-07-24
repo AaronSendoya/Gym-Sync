@@ -68,7 +68,7 @@ function App() {
         if (result.isRight()) {
           setSedes(result.value);
         } else {
-          setError('No pudimos calcular las sedes cercanas');
+          setError('No pudimos calcular las sucursales cercanas');
         }
       } catch (err: any) {
         setError(err.message || 'Error inicializando Geolocation');
@@ -91,7 +91,7 @@ function App() {
           className={`nav-tab ${activeTab === 'SEDES' ? 'active' : ''}`}
           onClick={() => setActiveTab('SEDES')}
         >
-          📍 Sedes Cercanas
+          Sucursales Cercanas
         </button>
         <button
           className={`nav-tab ${activeTab === 'PERFIL' ? 'active' : ''}`}

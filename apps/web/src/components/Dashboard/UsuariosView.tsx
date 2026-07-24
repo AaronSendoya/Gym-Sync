@@ -19,7 +19,7 @@ interface RoleOption { id: number; name: string; label: string; level: number; }
 const formatRoleName = (name: string): string => {
   const map: Record<string, string> = {
     SUPER_ADMIN: 'Super Administrador',
-    GERENTE: 'Gerente de Sede',
+    GERENTE: 'Gerente de Marca',
     ENTRENADOR: 'Entrenador',
     NUTRICIONISTA: 'Nutricionista',
     CLIENTE: 'Cliente',
@@ -193,7 +193,7 @@ setTouched(false);
       setSelectedMarcaId(gymId);
       setFormData(prev => ({ ...prev, gymIds: [gymId] }));
     } else {
-      // gymId es una Sucursal (ej. Recepcionista, Entrenador en sede específica)
+      // gymId es una Sucursal (ej. Recepcionista, Entrenador en sucursal específica)
       setSelectedMarcaId(parentId);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -590,7 +590,7 @@ setTouched(false);
           </div>
         )}
 
-        {/* ── ENTRENADOR / NUTRICIONISTA: sucursales agrupadas por sede ────────── */}
+        {/* ── ENTRENADOR / NUTRICIONISTA: sucursales agrupadas por marca ────────── */}
         {!isSelfEdit && needsMulti && (
           <>
             {/* Paso 1: Marca obligatoria (oculto si el contexto ya la impone) */}
@@ -1299,7 +1299,7 @@ export const UsuariosView = () => {
             return (
               <>
                 <DetailField
-                  label={<span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Building2 size={12} />Sede (Marca)</span>}
+                  label={<span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Building2 size={12} />Sucursal (Marca)</span>}
                   value={<span style={{ color: '#FF5E00', fontWeight: 600 }}>{sedeName}</span>}
                 />
                 <DetailField

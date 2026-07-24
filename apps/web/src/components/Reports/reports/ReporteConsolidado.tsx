@@ -146,7 +146,7 @@ export function ReporteConsolidado({ filters, onCsvReady, onPdfDataReady }: Prop
 
   useEffect(() => {
     if (!onCsvReady || loading) return;
-    const header = ['Sede', 'Marca', 'Check-ins', 'Reservas', 'Miembros activos', 'Máquinas'];
+    const header = ['Sucursal', 'Marca', 'Check-ins', 'Reservas', 'Miembros activos', 'Máquinas'];
     const rows = branchData.map(b => [b.name, b.brandName, String(b.checkins), String(b.reservations), String(b.members), String(b.machines)]);
     onCsvReady([header, ...rows]);
   }, [branchData, loading, onCsvReady]);

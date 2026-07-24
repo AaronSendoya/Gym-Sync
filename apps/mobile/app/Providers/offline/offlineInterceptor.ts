@@ -7,6 +7,12 @@ const MUTATION_METHODS = ['post', 'put', 'patch', 'delete'];
 const EXCLUDED_PATTERNS = [
   /\/check-?ins?\b/i,
   /\/check-in/i,
+  // Creación de sesión de entrenamiento: NO encolar el POST genérico.
+  // EjecutarRutinaScreen maneja el modo offline con OfflineSessions (payload
+  // completo con sets); encolar aquí crearía una sesión IN_PROGRESS vacía y
+  // duplicada al sincronizar. Solo matchea el endpoint de creación exacto —
+  // /sessions/:id/sets y PUT /sessions/:id siguen usando la cola normal.
+  /\/training\/sessions\/?$/i,
 ];
 
 function isMutation(method?: string): boolean {

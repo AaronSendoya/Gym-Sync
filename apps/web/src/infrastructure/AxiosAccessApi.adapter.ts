@@ -51,7 +51,7 @@ export class AxiosAccessApiAdapter implements IAccessApiService {
             rol: item.userProfile?.role || item.user?.role || item.userRoles?.[0]?.role?.name || item.role || undefined,
           },
           {
-            nombre: item.gym?.name || 'Sede Desconocida',
+            nombre: item.gym?.name || 'Sucursal Desconocida',
             direccion: item.gym?.address || item.gym?.description || 'N/A',
             coordenadas: {
               lat: item.gym?.latitude || 0,

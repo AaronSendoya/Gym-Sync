@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
@@ -23,6 +23,7 @@ const ActividadesView      = lazy(() => import('./components/Dashboard/Actividad
 const MachineInventoryScreen = lazy(() => import('./pages/dashboard/MachineInventoryScreen').then(m => ({ default: m.MachineInventoryScreen })));
 const ExerciseLibraryScreen  = lazy(() => import('./pages/dashboard/ExerciseLibraryScreen').then(m => ({ default: m.ExerciseLibraryScreen })));
 const ReservasView           = lazy(() => import('./components/Reservas/ReservasView').then(m => ({ default: m.ReservasView })));
+const MembresiasView         = lazy(() => import('./components/Dashboard/MembresiasView').then(m => ({ default: m.MembresiasView })));
 const AuditoriaView          = lazy(() => import('./components/Auditoria/AuditoriaView').then(m => ({ default: m.AuditoriaView })));
 const ReportesPage           = lazy(() => import('./pages/dashboard/ReportesPage').then(m => ({ default: m.ReportesPage })));
 
@@ -98,6 +99,10 @@ export const AppRouter = () => {
 
               <Route path="reservas" element={
                 <RoleGuard routePath="reservas"><ReservasView /></RoleGuard>
+              } />
+
+              <Route path="membresias" element={
+                <RoleGuard routePath="membresias"><MembresiasView /></RoleGuard>
               } />
 
               <Route path="reportes" element={

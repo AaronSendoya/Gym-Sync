@@ -8,6 +8,8 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { trainingApi, WorkoutSession } from '../../../app/Providers/training/api/training.api';
 import authAxios from '../../../app/Providers/auth/authAxios';
+import { cachedFetch } from '../../../app/Providers/offline/QueryCache';
+import { useAuth } from '../../../app/Shared/hooks/useAuth';
 import { DumbbellSpinner } from '../../../app/Shared/components/ui/DumbbellSpinner';
 
 //Paleta 
@@ -407,6 +409,8 @@ const card = StyleSheet.create({
 //Pantalla principal 
 export const CuadroDeMandoClienteScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { user } = useAuth();
+  const cacheUserId = (user as any)?.userId ?? (user as any)?.id ?? 'anon';
   const [sessions,          setSessions]          = useState<WorkoutSession[]>([]);
   const [metrics,           setMetrics]           = useState<MetricEntry[]>([]);
   const [loading,           setLoading]           = useState(true);
@@ -424,9 +428,16 @@ export const CuadroDeMandoClienteScreen: React.FC = () => {
     try {
       setLoading(true);
 
+      // Read-through cache SQLite POR USUARIO: offline sirve los datos de la
+      // última conexión sin exponer los de otro usuario del mismo dispositivo
       const [sessionsRes, metricsRes] = await Promise.allSettled([
-        trainingApi.getHistory({ limit: 100, offset: 0 }),
-        authAxios.get('/api/users/me/metrics'),
+        cachedFetch(`client-dash:sessions:${cacheUserId}`, () =>
+          trainingApi.getHistory({ limit: 100, offset: 0 }),
+        ),
+        cachedFetch(`client-dash:metrics:${cacheUserId}`, async () => {
+          const r = await authAxios.get('/api/users/me/metrics');
+          return r.data; // solo el body: serializable para el caché
+        }),
       ]);
 
       if (sessionsRes.status === 'fulfilled') {
@@ -437,7 +448,8 @@ export const CuadroDeMandoClienteScreen: React.FC = () => {
         );
       }
       if (metricsRes.status === 'fulfilled') {
-        const raw: MetricEntry[] = metricsRes.value.data?.data ?? metricsRes.value.data ?? [];
+        const body: any = metricsRes.value;
+        const raw: MetricEntry[] = body?.data ?? (Array.isArray(body) ? body : []);
         setMetrics(
           [...raw].sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime()),
         );
@@ -447,7 +459,7 @@ export const CuadroDeMandoClienteScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [cacheUserId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -614,7 +626,7 @@ export const CuadroDeMandoClienteScreen: React.FC = () => {
   </div>
   <h2>Historial de Entrenamientos</h2>
   <table>
-    <thead><tr><th>Fecha</th><th>Sede</th><th>Rutina</th><th>Duración</th><th>Calorías</th></tr></thead>
+    <thead><tr><th>Fecha</th><th>Sucursal</th><th>Rutina</th><th>Duración</th><th>Calorías</th></tr></thead>
     <tbody>${sessionRows || '<tr><td colspan="5">Sin sesiones en este período</td></tr>'}</tbody>
   </table>
   <h2>Historial de Métricas Físicas</h2>

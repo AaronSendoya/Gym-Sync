@@ -6,7 +6,7 @@
  * via handshake.auth para compatibilidad con el gateway durante la transición.
  *
  * Estrategia de Salas (Rooms):
- *   - GERENTE     → gym_{gymId}   (aislamiento estricto por sede)
+ *   - GERENTE     → gym_{gymId}   (aislamiento estricto por sucursal)
  *   - SUPER_ADMIN → admin_room    (visibilidad global)
  */
 
@@ -25,7 +25,7 @@ export interface SecurityAlertPayload {
 }
 
 export const useNotifications = () => {
-  const { user } = useAuth();
+  const { user, sessionEpoch } = useAuth();
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
@@ -89,13 +89,13 @@ export const useNotifications = () => {
         String(payload.gymId) !== String(user.gymId)
       ) {
         console.warn(
-          `[Security Guard]: Alerta de Sede ajena descartada para nivel ${user.level} ID ${user.id}. Sede recibida: ${payload.gymId}`,
+          `[Security Guard]: Alerta de Sucursal ajena descartada para nivel ${user.level} ID ${user.id}. Sucursal recibida: ${payload.gymId}`,
         );
         return;
       }
 
       toast.error(
-        ` Alerta de Seguridad\nAcceso denegado a Usuario ${payload.attemptedUserId}\nen sede "${payload.gymName}"`,
+        ` Alerta de Seguridad\nAcceso denegado a Usuario ${payload.attemptedUserId}\nen sucursal "${payload.gymName}"`,
         {
           duration: 10000,
           style: {
@@ -129,7 +129,9 @@ export const useNotifications = () => {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [user?.id, user?.level, user?.gymId]);
+    // sessionEpoch: tras una recuperación de backend (refreshSession exitoso post-caída)
+    // el epoch cambia → este efecto se re-ejecuta → reconecta y re-emite join_room.
+  }, [user?.id, user?.level, user?.gymId, sessionEpoch]);
 
   return socketRef;
 };

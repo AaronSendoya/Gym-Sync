@@ -17,7 +17,7 @@ const REPORT_TITLES: Record<ReportType, string> = {
   maquinas:      'Inventario de Máquinas',
   consolidado:   'Consolidado de Sucursales',
   aforo:         'Estado de Aforo',
-  ranking:       'Ranking de Sedes',
+  ranking:       'Ranking de Sucursales',
   actividades:   'Rendimiento de Actividades',
   cancelaciones: 'Cancelaciones y No-Shows',
   frecuencia:    'Frecuencia de Entrenamiento',

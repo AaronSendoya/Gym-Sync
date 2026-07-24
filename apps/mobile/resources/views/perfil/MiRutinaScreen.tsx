@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../../app/Shared/hooks/useAuth';
 import { staffApi, ClientRoutine, ClientRoutineExercise } from '../../../app/Providers/staff/api/staff.api';
+import { cachedFetch } from '../../../app/Providers/offline/QueryCache';
 import { ParameterChip } from '../../components/ParameterChip';
 import { DumbbellSpinner } from '../../../app/Shared/components/ui/DumbbellSpinner';
 
@@ -44,7 +45,9 @@ const formatCell = (ex: ClientRoutineExercise): string => {
 type ByDay = Record<DayKey, ClientRoutineExercise[]>;
 
 const buildByDay = (routines: ClientRoutine[]): ByDay => {
-  const result = Object.fromEntries(DAYS.map(d => [d, []])) as ByDay;
+  const result = Object.fromEntries(
+    DAYS.map(d => [d, [] as ClientRoutineExercise[]]),
+  ) as ByDay;
   for (const r of routines) {
     for (const ex of r.exercises) {
       const day = ex.dayOfWeek as DayKey;
@@ -180,10 +183,13 @@ export const MiRutinaScreen = () => {
 
   const { data: routines = [], isLoading, isError, refetch } = useQuery<ClientRoutine[]>({
     queryKey: ['my-routines', userId],
-    queryFn: async () => {
-      const res = await staffApi.getMyRoutines(userId);
-      return Array.isArray(res) ? res : (res?.data ?? []);
-    },
+    // Read-through cache SQLite: online refresca el caché; offline sirve el
+    // último payload guardado — la rutina es legible y ejecutable sin red.
+    queryFn: () =>
+      cachedFetch<ClientRoutine[]>(`my-routines:${userId}`, async () => {
+        const res = await staffApi.getMyRoutines(userId);
+        return Array.isArray(res) ? res : (res?.data ?? []);
+      }),
     enabled: !!userId,
     staleTime: 2 * 60_000,
     retry: 1,

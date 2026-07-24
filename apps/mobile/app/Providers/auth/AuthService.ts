@@ -274,6 +274,25 @@ export class AuthService {
     } catch (e) {
       console.warn('[AuthService] Error en logout:', e);
     }
+
+    // Purgar TODO el estado offline local: caché de lecturas, sesiones de
+    // entrenamiento pendientes y cola de mutaciones. Sin esto, otro usuario
+    // que inicie sesión en el mismo dispositivo vería (offline) los datos
+    // del usuario anterior, o sincronizaría sus pendientes con otro token.
+    try {
+      const [{ QueryCache }, { OfflineSessions }, { OfflineQueue }] = await Promise.all([
+        import('../offline/QueryCache'),
+        import('../offline/OfflineSessions'),
+        import('../offline/OfflineQueue'),
+      ]);
+      await Promise.all([
+        QueryCache.clear(),
+        OfflineSessions.clear(),
+        OfflineQueue.clear(),
+      ]);
+    } catch (e) {
+      console.warn('[AuthService] Error limpiando estado offline:', e);
+    }
   }
 
   /**

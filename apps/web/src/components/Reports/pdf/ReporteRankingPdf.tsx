@@ -38,14 +38,14 @@ export function ReporteRankingPdf({ data }: { data: RankingPdfData }) {
   return (
     <Document>
       <Page size="A4" style={s.page}>
-        <PdfHeader title="Ranking de Sedes" gymName="Todas las marcas y sucursales" />
+        <PdfHeader title="Ranking de Sucursales" gymName="Todas las marcas y sucursales" />
         <PdfMetaStrip period={data.period} genAt={data.genAt} />
         <View style={s.body}>
           <PdfKpiRow kpis={data.kpis} />
 
           {data.top3.length >= 1 && (
             <>
-              <PdfSectionTitle>Podio — Top 3 Sedes</PdfSectionTitle>
+              <PdfSectionTitle>Podio — Top 3 Sucursales</PdfSectionTitle>
               <View style={s.podio}>
                 {display.map((sede, idx) => {
                   if (!sede) return <View key={idx} style={{ width: 120 }} />;
@@ -66,7 +66,7 @@ export function ReporteRankingPdf({ data }: { data: RankingPdfData }) {
 
           {data.charts.barScore && (
             <>
-              <PdfSectionTitle>Score por Sede</PdfSectionTitle>
+              <PdfSectionTitle>Score por Sucursal</PdfSectionTitle>
               <Image src={data.charts.barScore} style={s.chartFull} />
             </>
           )}

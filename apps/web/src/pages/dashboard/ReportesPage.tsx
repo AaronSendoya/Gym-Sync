@@ -59,8 +59,8 @@ const CARDS: ReportCard[] = [
   },
   {
     type:        'ranking',
-    title:       'Ranking de Sedes',
-    description: 'Score consolidado por sucursal basado en check-ins, reservas completadas, miembros activos y % de ocupación. Identifica las sedes con mejor y peor desempeño.',
+    title:       'Ranking de Sucursales',
+    description: 'Score consolidado por sucursal basado en check-ins, reservas completadas, miembros activos y % de ocupación. Identifica las sucursales con mejor y peor desempeño.',
     badge:       'SUPER ADMIN',
     icon:        <Trophy size={22} />,
     superOnly:   true,

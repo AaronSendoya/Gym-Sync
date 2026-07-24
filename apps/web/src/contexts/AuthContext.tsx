@@ -4,6 +4,7 @@ import React, {
   useContext,
   useState,
   useCallback,
+  useRef,
   ReactNode,
   useEffect,
 } from 'react';
@@ -33,6 +34,14 @@ interface AuthState {
   logout: () => Promise<void>;
   isLoading: boolean;
   refreshSession: () => Promise<boolean>;
+  /** true mientras el backend no responde (error de red, no 401). */
+  isServerDown: boolean;
+  /**
+   * Se incrementa en cada recuperación de sesión tras una caída del backend.
+   * Los consumidores con conexiones persistentes (Socket.io) lo usan como
+   * dependencia para reconectar y re-emitir join_room.
+   */
+  sessionEpoch: number;
 }
 
 export const AuthContext = createContext<AuthState>({} as AuthState);
@@ -151,6 +160,15 @@ function buildUserFromMeResponse(data: Record<string, any>): WebUser | null {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<WebUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isServerDown, setIsServerDown] = useState(false);
+  const [sessionEpoch, setSessionEpoch] = useState(0);
+  // Ref espejo de isServerDown: refreshSession la lee sin re-crearse por cambios de estado.
+  const serverDownRef = useRef(false);
+
+  const markServerDown = useCallback((down: boolean) => {
+    serverDownRef.current = down;
+    setIsServerDown(down);
+  }, []);
 
   // ── Hidratación: la cookie HttpOnly se envía automáticamente con withCredentials ──
   // 1. Intento rápido con datos cacheados en localStorage (solo perfil, no token)
@@ -184,12 +202,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (error: any) {
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+          // JWT expirado pero cookie viva (grace period): intentar renovación
+          // silenciosa una vez antes de purgar la sesión.
+          try {
+            await apiClient.post('/auth/refresh', {}, { _skipErrorToast: true } as any);
+            const retry = await apiClient.get('/auth/me', { _skipErrorToast: true } as any);
+            const renewed = buildUserFromMeResponse(retry.data ?? {});
+            if (renewed) {
+              setUser(renewed);
+              localStorage.setItem('gymsync_user', JSON.stringify(renewed));
+              return; // sesión renovada — finally hace setIsLoading(false)
+            }
+          } catch { /* refresh falló — purga normal */ }
           // Token inválido o sesión revocada en el servidor → purgar
           setUser(null);
           localStorage.removeItem('gymsync_user');
           sessionStorage.clear();
         } else {
           // Error de red o backend reiniciándose → conservar datos cacheados
+          // y activar el polling de auto-recuperación.
+          markServerDown(true);
           const storedRaw = localStorage.getItem('gymsync_user');
           if (storedRaw) {
             try { setUser(JSON.parse(storedRaw) as WebUser); } catch { /* corrupt cache */ }
@@ -266,7 +298,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
       }
 
+      // Purga TODA la caché de React Query antes de asumir la nueva identidad:
+      // sin esto, datos territorialmente filtrados de la sesión anterior (ej.
+      // /gyms cacheado como Gerente) sobreviven hasta 'staleTime' y se muestran
+      // a la cuenta nueva (ej. Super Admin) como si fueran su propia data.
+      queryClient.clear();
+
       setUser(webUser);
+      markServerDown(false); // login exitoso = backend arriba
       // Guardamos SOLO datos de perfil (no sensibles) para arranque optimista
       localStorage.setItem('gymsync_user', JSON.stringify(webUser));
 
@@ -293,6 +332,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(null);
       localStorage.removeItem('gymsync_user');
       sessionStorage.clear();
+      // Purga la caché de React Query: sin esto, la próxima cuenta que inicie
+      // sesión en esta misma pestaña (dev/QA cambiando de rol, o un usuario
+      // real compartiendo equipo) hereda datos territorialmente filtrados
+      // de ESTE usuario hasta que expire 'staleTime' (2 min).
+      queryClient.clear();
     }
   };
 
@@ -301,11 +345,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const res = await apiClient.get('/auth/me', { _skipErrorToast: true } as any);
       const freshUser = buildUserFromMeResponse(res.data ?? {});
       if (freshUser) {
+        const wasDown = serverDownRef.current;
         setUser(freshUser);
         localStorage.setItem('gymsync_user', JSON.stringify(freshUser));
         // Invalida todos los caches de React Query para que los módulos activos
         // recarguen datos frescos del servidor tras la recuperación de sesión.
         queryClient.invalidateQueries();
+        if (wasDown) {
+          // Estado 'Recuperado': el epoch fuerza a las conexiones persistentes
+          // (Socket.io) a reconectar y re-emitir join_room con datos frescos.
+          markServerDown(false);
+          setSessionEpoch((e) => e + 1);
+        }
         return true;
       }
       return false;
@@ -314,14 +365,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(null);
         localStorage.removeItem('gymsync_user');
         sessionStorage.clear();
+        markServerDown(false);
+      } else if (!error.response) {
+        // Sin respuesta HTTP = backend caído → mantener/activar polling
+        markServerDown(true);
       }
       return false;
     }
-  }, []);
+  }, [markServerDown]);
+
+  // ── Auto-recuperación: mientras el backend esté caído, reintenta cada 10 s ──
+  useEffect(() => {
+    if (!isServerDown) return;
+    const interval = setInterval(() => {
+      void refreshSession();
+    }, 10_000);
+    return () => clearInterval(interval);
+  }, [isServerDown, refreshSession]);
 
   const value = React.useMemo(
-    () => ({ isAuthenticated: !!user, user, login, logout, isLoading, refreshSession }),
-    [user, login, logout, isLoading, refreshSession],
+    () => ({
+      isAuthenticated: !!user,
+      user,
+      login,
+      logout,
+      isLoading,
+      refreshSession,
+      isServerDown,
+      sessionEpoch,
+    }),
+    [user, login, logout, isLoading, refreshSession, isServerDown, sessionEpoch],
   );
 
   return (

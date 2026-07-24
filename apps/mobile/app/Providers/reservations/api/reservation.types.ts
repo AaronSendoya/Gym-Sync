@@ -1,8 +1,49 @@
 export interface SubscriptionStatus {
-  status: 'ACTIVO' | 'VENCIDO' | 'PAUSADO';
+  status: 'ACTIVA' | 'VENCIDA' | 'CONGELADA' | 'CANCELADA' | 'ACTIVO' | 'VENCIDO' | 'PAUSADO';
   planName: string;
   endDate: string;
   isActive: boolean;
+}
+
+/** Respuesta de GET /api/subscriptions/me/active (null si no hay membresía). */
+export interface ActiveMembership {
+  id: number;
+  status: string;
+  startDate: string;
+  endDate: string;
+  daysRemaining: number;
+  homeGymName: string | null;
+  brandName: string | null;
+  plan: {
+    id: number;
+    name: string;
+    priceMonthly: number | null;
+    durationDays: number | null;
+    sessionsIncluded: number | null;
+    windowDays: number | null;
+    scope: 'SUCURSAL' | 'MARCA';
+  };
+  sessionsUsed: number | null;
+  sessionsRemaining: number | null;
+}
+
+/** Respuesta de GET /api/subscriptions/checkin-calendar/me (null si no hay membresía). */
+export interface CheckinCalendarDto {
+  subscriptionId: number;
+  userId: number;
+  clientName: string | null;
+  planName: string;
+  /** SESIONES = plan ejecutivo/especial (rojo). FECHA = plan regular (naranja). */
+  planKind: 'SESIONES' | 'FECHA';
+  status: string;
+  startDate: string;
+  endDate: string;
+  homeGymName: string | null;
+  year: number;
+  month: number; // 1-12
+  daysInMonth: number;
+  checkedInDays: number[];
+  todayDay: number | null;
 }
 
 export type DayOfWeek =

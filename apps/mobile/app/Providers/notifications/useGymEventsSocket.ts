@@ -160,6 +160,16 @@ export function useGymEventsSocket(): void {
         queryClient.invalidateQueries({ queryKey: ['inbox'] });
       });
 
+      // Congelar/descongelar/cancelar una membresía desde la web de staff debe
+      // reflejarse de inmediato si el cliente tiene "Mi Membresía" abierta en
+      // ese momento — sin esto, solo se enteraba al hacer pull-to-refresh o
+      // al reabrir la pantalla (staleTime 5 min). emitToUser en el backend ya
+      // garantiza que solo el cliente dueño de la membresía recibe el evento.
+      socket.on('membership_status_changed', () => {
+        queryClient.invalidateQueries({ queryKey: ['my-active-membership'] });
+        queryClient.invalidateQueries({ queryKey: ['my-checkin-calendar'] });
+      });
+
       const advisoryEvents = ['advisory_request', 'advisory_accepted', 'advisory_rejected', 'advisory_cancelled'];
       for (const evt of advisoryEvents) {
         socket.on(evt, async (payload: any) => {

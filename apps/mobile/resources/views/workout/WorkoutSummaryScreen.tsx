@@ -23,7 +23,7 @@ export const WorkoutSummaryScreen = () => {
   const isStrength = sport !== 'CARDIO' && sport !== 'HIIT';
 
   const maxWeight = isStrength
-    ? Math.max(0, ...series.map(s => parseFloat(s.peso) || 0))
+    ? Math.max(0, ...series.map((s: Serie) => parseFloat(s.peso) || 0))
     : 0;
 
   const displayName = (exerciseName ?? String(sport).toUpperCase()) as string;

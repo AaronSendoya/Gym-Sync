@@ -82,7 +82,7 @@ export function ReporteAuditoria({ filters, onCsvReady, onPdfDataReady }: Props)
       const d = new Date(c.checkInTime);
       const dateStr = d.toLocaleDateString('es-BO', { day: '2-digit', month: '2-digit', year: 'numeric' });
       const timeStr = d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' });
-      return [`${dateStr} ${timeStr}`, c.userProfile?.fullName ?? '—', c.userProfile?.role ?? '—', c.gym?.name ?? gymMap[c.gymId] ?? `Sede #${c.gymId}`];
+      return [`${dateStr} ${timeStr}`, c.userProfile?.fullName ?? '—', c.userProfile?.role ?? '—', c.gym?.name ?? gymMap[c.gymId] ?? `Sucursal #${c.gymId}`];
     });
     onCsvReady([header, ...csvRows]);
   }, [filtered, lCI, lG, gymMap, onCsvReady]);

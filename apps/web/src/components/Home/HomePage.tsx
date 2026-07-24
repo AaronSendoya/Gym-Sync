@@ -246,7 +246,7 @@ export const HomePage = () => {
               {
                 n: '01',
                 who: 'Administrador',
-                title: 'Configura la sede',
+                title: 'Configura la sucursal',
                 desc: 'Crea sucursales, carga el inventario de máquinas, configura horarios de atención, asigna staff y define los roles desde el panel web.',
                 tags: ['Panel Web', 'RBAC', 'Inventario'],
               },

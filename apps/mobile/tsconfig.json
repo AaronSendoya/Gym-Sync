@@ -2,13 +2,6 @@
   "extends": "../../node_modules/expo/tsconfig.base.json",
   "compilerOptions": {
     "strict": true,
-    "ignoreDeprecations": "6.0",
-    "baseUrl": ".",
-    "paths": {
-      "@shared/*": ["src/shared/*"],
-      "@modules/*": ["src/modules/*"],
-      "@di/*": ["src/di/*"]
-    },
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,

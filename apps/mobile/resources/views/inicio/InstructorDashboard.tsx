@@ -196,7 +196,7 @@ export const InstructorDashboard = () => {
     refetch:   refetchSched,
   } = useQuery({
     queryKey:  ['instructor-weekly-schedules'],
-    queryFn:   staffApi.getMyWeeklySchedules,
+    queryFn:   () => staffApi.getMyWeeklySchedules(),
     staleTime: 5 * 60_000,
     retry:     1,
   });
@@ -209,7 +209,7 @@ export const InstructorDashboard = () => {
     refetch: refetchStats,
   } = useQuery({
     queryKey:  ['instructor-attendance-stats'],
-    queryFn:   staffApi.getMyAttendanceStats,
+    queryFn:   () => staffApi.getMyAttendanceStats(),
     staleTime: 5 * 60_000,
     retry:     1,
   });

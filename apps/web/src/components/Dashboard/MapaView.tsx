@@ -121,7 +121,7 @@ const iconActiva   = createCustomIcon('#2ecc71');
 const iconCerrada  = createCustomIcon('#e74c3c');
 const iconInactiva = createCustomIcon('#FF5E00');
 
-// ── Paleta por Sede Principal ─────────────────────────────────────────────────
+// ── Paleta por Marca Principal ─────────────────────────────────────────────────
 const SEDE_PALETTE = [
   '#38BDF8','#FF5E00','#00E5A3','#38BDF8','#FF5E00',
   '#00E5A3','#38BDF8','#FF5E00','#00E5A3','#38BDF8',
@@ -498,7 +498,7 @@ export const MapaView: React.FC = () => {
     [sucursales]
   );
 
-  // Sedes únicas (solo relevante para SUPER_ADMIN)
+  // Marcas únicas (solo relevante para SUPER_ADMIN)
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const sedesUnicas = useMemo(() => {
     const map = new Map<string, number | null>();

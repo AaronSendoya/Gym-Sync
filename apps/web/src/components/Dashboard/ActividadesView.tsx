@@ -292,13 +292,25 @@ const ActivityFormModal = ({
   // ── Campos básicos ──
   const [gymId,       setGymId]       = useState<string>(resolveInitialGymId);
   const [selectedBrandId, setSelectedBrandId] = useState<string>(() => {
-    if (isEdit && initial?.gymId) {
-      const branch = gyms.find(g => g.id === initial!.gymId);
-      return branch?.parentId ? String(branch.parentId) : '';
-    }
+    // NO derivar desde 'gyms' aquí: este inicializador corre UNA sola vez al
+    // montar, antes de que la query del padre necesariamente haya resuelto —
+    // si 'gyms' llega vacío en ese instante, quedaría vacío para siempre. La
+    // derivación por gymId vive en el useEffect de abajo, reactivo a 'gyms'.
     if (callerLevel === 5 && gerenteBrandId) return String(gerenteBrandId);
     return '';
   });
+
+  // Pre-poblar la Marca al editar un servicio de sucursal (Super Admin):
+  // reacciona a 'gyms' en vez de derivarlo solo en el montaje inicial (mismo
+  // patrón que UsuariosView usa para su cascada Marca→Sucursal).
+  useEffect(() => {
+    if (!isEdit || !initial?.gymId || gyms.length === 0) return;
+    const branch = gyms.find(g => g.id === initial.gymId);
+    if (branch?.parentId != null) {
+      setSelectedBrandId(String(branch.parentId));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gyms, isEdit, initial?.gymId]);
   const [name,        setName]        = useState(initial?.name ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [duration,    setDuration]    = useState(
@@ -870,10 +882,16 @@ export const ActividadesView = () => {
       type RawGym = { id: number; name: string; parentId?: number | null; parent_id?: number | null };
       const rawBranches: RawGym[] = Array.isArray(branchesRes) ? (branchesRes as RawGym[]) : ((branchesRes as { data?: RawGym[] })?.data ?? []);
       const rawBrands: RawGym[]   = Array.isArray(brandsRes)   ? (brandsRes as RawGym[])   : ((brandsRes as { data?: RawGym[] })?.data   ?? []);
-      return [
-        ...rawBrands.map((g)   => ({ id: g.id, name: g.name, parentId: null as null })),
-        ...rawBranches.map((g) => ({ id: g.id, name: g.name, parentId: (g.parentId ?? g.parent_id ?? null) as number | null })),
-      ] as GymOption[];
+      // Dedupe por id: para Gerente/Super Admin, /gyms puede incluir la marca
+      // (gym raíz, parentId null) además de las sucursales — la misma marca
+      // también viene de /gyms/brands, y sin dedupe se duplicaba en los
+      // selectores (options con key repetida).
+      const byId = new Map<number, GymOption>();
+      rawBrands.forEach((g)   => byId.set(g.id, { id: g.id, name: g.name, parentId: null }));
+      rawBranches.forEach((g) => {
+        if (!byId.has(g.id)) byId.set(g.id, { id: g.id, name: g.name, parentId: (g.parentId ?? g.parent_id ?? null) });
+      });
+      return [...byId.values()] as GymOption[];
     },
     enabled: isSuperAdmin || isGerente,
   });
