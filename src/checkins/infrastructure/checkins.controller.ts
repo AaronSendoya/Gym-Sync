@@ -30,7 +30,7 @@ export class CheckinsController {
   create(@Req() req: RequestWithUser, @Body() body: CreateCheckInDto) {
     const gymId = req.user!.gymId;
     if (!gymId)
-      throw new ForbiddenException('Usuario sin sede asignada en el token.');
+      throw new ForbiddenException('Usuario sin sucursal asignada en el token.');
     return this.svc.createCheckIn(body.userId, gymId, body.method);
   }
 
@@ -58,7 +58,7 @@ export class CheckinsController {
 
   @Get()
   @UseGuards(AdminLevelGuard)
-  @ApiOperation({ summary: 'Listar check-ins (level >= 10 sin filtro, level 4-5 filtrado a su sede)' })
+  @ApiOperation({ summary: 'Listar check-ins (level >= 10 sin filtro, level 4-5 filtrado a su sucursal)' })
   findAll(@Req() req: RequestWithUser) {
     const level = req.user?.level ?? 0;
     const gymId = req.user?.gymId;
@@ -77,7 +77,7 @@ export class CheckinsController {
 
   @Get('gym/:gymId')
   @UseGuards(AdminLevelGuard)
-  @ApiOperation({ summary: 'Check-ins de una sede específica (level >= 4)' })
+  @ApiOperation({ summary: 'Check-ins de una sucursal específica (level >= 4)' })
   findByGym(@Param('gymId', ParseIntPipe) gid: number) {
     return this.svc.findByGym(gid);
   }

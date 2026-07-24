@@ -56,23 +56,50 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Esta cuenta ya no está disponible.');
     }
 
-    let level = payload.level ?? 0;
+    // El JWT solo transporta identidad (sub/email). level, gymId y brandId se
+    // re-resuelven desde user_roles en CADA request: una reasignación de sede o
+    // cambio de rol surte efecto de inmediato, sin esperar a que expire el token.
+    const assignments = await this.userRolesRepo.find({
+      where: { userId: payload.sub },
+      relations: ['role', 'gym'],
+    });
 
-    if (level === 0) {
-      const topRole = await this.userRolesRepo.findOne({
-        where: { userId: payload.sub },
-        relations: ['role'],
-        order: { role: { hierarchyLevel: 'DESC' } },
-      });
-      level = topRole?.role?.hierarchyLevel ?? 0;
+    const sorted = [...assignments].sort(
+      (a, b) => (b.role?.hierarchyLevel ?? 0) - (a.role?.hierarchyLevel ?? 0),
+    );
+    const top = sorted[0];
+    const level = top?.role?.hierarchyLevel ?? 0;
+    const roleName = top?.role?.name ?? payload.role ?? null;
+
+    let gymId: number | null = null;
+    let brandId: number | null = null;
+
+    if (level >= 10) {
+      // Super Admin: territorio global, sin filtro.
+    } else if (level === 5) {
+      // Gerente: brandId si su asignación es un gym raíz (marca), gymId si es sucursal.
+      const gerenteRoles = sorted.filter((a) => a.role?.hierarchyLevel === 5);
+      const assignment =
+        gerenteRoles.find((a) => a.gymId !== null && a.gymId !== undefined) ??
+        gerenteRoles[0];
+      const resolvedGymId = assignment?.gymId ?? null;
+      if (resolvedGymId !== null && resolvedGymId !== undefined) {
+        if (assignment?.gym && assignment.gym.parentId === null) {
+          brandId = Number(resolvedGymId);
+        } else {
+          gymId = Number(resolvedGymId);
+        }
+      }
+    } else {
+      gymId = top?.gymId !== null && top?.gymId !== undefined ? Number(top.gymId) : null;
     }
 
     return {
       userId: payload.sub,
       email: payload.email,
-      role: payload.role ?? null,
-      gymId: payload.gymId ?? null,
-      brandId: payload.brandId ?? null,
+      role: roleName,
+      gymId,
+      brandId,
       level,
     };
   }

@@ -376,38 +376,87 @@ export class ReservationsService {
 
     const reservationDate = this.parseReservationDateOnly(data.reservationDate);
 
-    const overlap = await this.repo
-      .createQueryBuilder('r')
-      .where('r.userId = :uid', { uid: reservationUserId })
-      .andWhere('r.activityId = :aid', { aid: activity.id })
-      .andWhere('r.reservation_date = :d', { d: reservationDate })
-      .andWhere('r.status IN (:...st)', { st: [...ACTIVE_RESERVATION_STATUSES] })
-      .andWhere('r.start_time < :end', { end: data.endTime })
-      .andWhere('r.end_time > :start', { start: data.startTime })
-      .getExists();
-    if (overlap) {
-      throw new ConflictException(
-        'Ya tienes una reserva en ese horario para esta actividad.',
-      );
-    }
-
-    const entity = this.repo.create({
+    const saved = await this.saveFreeReservationWithLock({
       userId: reservationUserId,
-      gymActivityScheduleId: null,
-      gymId: activity.gymId,
       activityId: activity.id,
+      gymId: activity.gymId,
       reservationDate,
       startTime: data.startTime, // tiempo elegido por el cliente
       endTime: data.endTime,
       status: 'PENDIENTE',
       createdBy: actorId,
     });
-
-    const saved = await this.repo.save(entity);
     this.logger.debug(
       `Reserva libre ${saved.id}: activity=${activity.id} gym=${activity.gymId} user=${reservationUserId}`,
     );
     return saved;
+  }
+
+  /**
+   * Overlap-check + INSERT atómicos para reservas de acceso libre.
+   * Lock pessimistic_write sobre la fila del usuario: un double-submit del
+   * mismo usuario se serializa (el segundo request espera el commit del
+   * primero y ve su reserva en el overlap-check → 409), sin bloquear a
+   * otros usuarios. Cierra el TOCTOU del patrón SELECT-luego-INSERT.
+   */
+  private async saveFreeReservationWithLock(fields: {
+    userId: number;
+    activityId: number;
+    gymId: Reservation['gymId'];
+    reservationDate: Reservation['reservationDate'];
+    startTime: string;
+    endTime: string;
+    status: Reservation['status'];
+    createdBy: number;
+    qrToken?: string;
+  }): Promise<Reservation> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      await queryRunner.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [
+        fields.userId,
+      ]);
+
+      const overlap = await queryRunner.manager
+        .createQueryBuilder(Reservation, 'r')
+        .where('r.userId = :uid', { uid: fields.userId })
+        .andWhere('r.activityId = :aid', { aid: fields.activityId })
+        .andWhere('r.reservation_date = :d', { d: fields.reservationDate })
+        .andWhere('r.status IN (:...st)', { st: [...ACTIVE_RESERVATION_STATUSES] })
+        .andWhere('r.start_time < :end', { end: fields.endTime })
+        .andWhere('r.end_time > :start', { start: fields.startTime })
+        .getExists();
+      if (overlap) {
+        throw new ConflictException(
+          'Ya tienes una reserva en ese horario para esta actividad.',
+        );
+      }
+
+      const saved = await queryRunner.manager.save(
+        Reservation,
+        queryRunner.manager.create(Reservation, {
+          userId: fields.userId,
+          gymActivityScheduleId: null,
+          gymId: fields.gymId,
+          activityId: fields.activityId,
+          reservationDate: fields.reservationDate,
+          startTime: fields.startTime,
+          endTime: fields.endTime,
+          status: fields.status,
+          createdBy: fields.createdBy,
+          ...(fields.qrToken ? { qrToken: fields.qrToken } : {}),
+        }),
+      );
+
+      await queryRunner.commitTransaction();
+      return saved;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   /**
@@ -499,35 +548,17 @@ export class ReservationsService {
         data.reservationDate,
       );
 
-      const overlap = await this.repo
-        .createQueryBuilder('r')
-        .where('r.userId = :uid', { uid: reservationUserId })
-        .andWhere('r.activityId = :aid', { aid: activity.id })
-        .andWhere('r.reservation_date = :d', { d: reservationDate })
-        .andWhere('r.status IN (:...st)', { st: [...ACTIVE_RESERVATION_STATUSES] })
-        .andWhere('r.start_time < :end', { end: data.endTime })
-        .andWhere('r.end_time > :start', { start: data.startTime })
-        .getExists();
-      if (overlap) {
-        throw new ConflictException(
-          'Ya tienes una reserva en ese horario para esta actividad.',
-        );
-      }
-
-      const saved = await this.repo.save(
-        this.repo.create({
-          userId: reservationUserId,
-          gymActivityScheduleId: null,
-          gymId: activity.gymId,
-          activityId: activity.id,
-          reservationDate,
-          startTime: data.startTime,
-          endTime: data.endTime,
-          status: 'CONFIRMADA',
-          createdBy: actorId,
-          qrToken: randomUUID(),
-        }),
-      );
+      const saved = await this.saveFreeReservationWithLock({
+        userId: reservationUserId,
+        activityId: activity.id,
+        gymId: activity.gymId,
+        reservationDate,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        status: 'CONFIRMADA',
+        createdBy: actorId,
+        qrToken: randomUUID(),
+      });
 
       this.logger.debug(
         `[FREE] Reserva ${saved.id} activity=${activity.id} gym=${activity.gymId} user=${reservationUserId}`,

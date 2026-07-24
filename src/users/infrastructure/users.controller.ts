@@ -118,10 +118,14 @@ export class UsersController {
   // clientes son entidades globales (no tienen gym_id).
   @Get('chat/clients')
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Buscar clientes (nivel 1) para iniciar chat. Accesible a todos los roles.' })
+  @ApiOperation({ summary: 'Buscar clientes (nivel 1) para iniciar chat o inscribir membresía. Accesible a todos los roles.' })
   @ApiQuery({ name: 'search', required: false, description: 'Nombre o email del cliente' })
-  searchClients(@Query('search') search?: string) {
-    return this.usersService.searchClientUsers(search, 30);
+  @ApiQuery({ name: 'offset', required: false, description: 'Para "cargar más resultados" (default 0)' })
+  searchClients(
+    @Query('search') search?: string,
+    @Query('offset') offset?: string,
+  ) {
+    return this.usersService.searchClientUsers(search, 30, offset ? Number(offset) : 0);
   }
 
   // GET /api/users/:id/chat-profile  →  perfil público para la vista de contacto del chat
@@ -130,8 +134,11 @@ export class UsersController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Perfil público de un usuario para la vista de contacto del chat' })
   @ApiParam({ name: 'id', example: 1 })
-  getChatProfile(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.getChatProfile(id);
+  getChatProfile(
+    @Req() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.usersService.getChatProfile(id, Number(req.user?.level ?? 0));
   }
 
   @Get(':id')

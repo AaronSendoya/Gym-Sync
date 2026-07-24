@@ -115,6 +115,19 @@ export class ActivitiesService {
       }
     }
 
+    // Desactivación vía PATCH: misma cascada transaccional que deleteActivity.
+    // El DELETE físico de los horarios dispara ON DELETE CASCADE sobre
+    // gym_activity_attendance; sin esto quedan horarios huérfanos que bloquean
+    // agendas de instructores (regla de gobernanza #4).
+    const deactivating = data.isActive === false && activity.isActive === true;
+    if (deactivating) {
+      return this.dataSource.transaction(async (em) => {
+        await em.delete(GymActivitySchedule, { gymActivityId: id });
+        Object.assign(activity, data);
+        return em.save(GymActivity, activity);
+      });
+    }
+
     Object.assign(activity, data);
     return this.actRepo.save(activity);
   }

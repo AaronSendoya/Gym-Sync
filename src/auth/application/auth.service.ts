@@ -262,7 +262,9 @@ export class AuthService {
     return this.usersService.findOne(userId);
   }
 
-  async refreshToken(expiredToken: string): Promise<{ accessToken: string }> {
+  async refreshToken(
+    expiredToken: string,
+  ): Promise<{ accessToken: string; level: number }> {
     let payload: { sub: number; exp?: number } | null = null;
     try {
       payload = this.jwtService.verify<{ sub: number; exp?: number }>(
@@ -290,7 +292,10 @@ export class AuthService {
     }
 
     const newPayload = await this.buildJwtPayload({ id: user.id, email: user.email });
-    return { accessToken: this.jwtService.sign(newPayload) };
+    return {
+      accessToken: this.jwtService.sign(newPayload),
+      level: Number(newPayload.level ?? 0),
+    };
   }
 
   /**

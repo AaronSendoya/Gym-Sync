@@ -8,11 +8,13 @@ import { CheckinsService } from './application/checkins.service';
 import { CheckinsController } from './infrastructure/checkins.controller';
 import { CheckinsSchedulerService } from './application/checkins-scheduler.service';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([CheckIn, UserRole, Gym, Reservation]),
     NotificationsModule,
+    SubscriptionsModule,
   ],
   controllers: [CheckinsController],
   providers: [CheckinsService, CheckinsSchedulerService],

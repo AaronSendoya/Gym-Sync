@@ -1,6 +1,12 @@
 import { ForbiddenException } from '@nestjs/common';
 import { Request } from 'express';
 
+/**
+ * CONTRATO DE SEGURIDAD: level, gymId y brandId de RequestUser NO provienen del
+ * payload del JWT. JwtStrategy.validate() los re-resuelve desde la tabla
+ * user_roles en cada request. Cualquier cambio a ese contrato reabre la fuga
+ * de jurisdicción por tokens obsoletos (reasignación de sede no reflejada).
+ */
 export type RequestUser = {
   userId: string | number;
   email: string;

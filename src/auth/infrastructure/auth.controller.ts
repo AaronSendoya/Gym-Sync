@@ -86,9 +86,27 @@ export class AuthController {
       httpOnly: true,          // inaccesible desde JS — protege de XSS
       secure: this.configService.get('NODE_ENV') === 'production',
       sameSite: 'lax',         // protege de CSRF; 'strict' rompería flujos OAuth futuros
-      maxAge: this.cookieMaxAge,
+      // JWT_EXPIRATION + 30 días: la cookie sobrevive a la expiración del JWT
+      // para que POST /auth/refresh pueda renovarlo dentro del grace period.
+      // Un JWT expirado dentro de la cookie NO autentica requests (401).
+      maxAge: this.cookieMaxAge + 30 * 86400 * 1000,
       path: '/',
     });
+  }
+
+  /**
+   * Gate de plataforma: la cookie HttpOnly es el vehículo de sesión exclusivo
+   * de la PLATAFORMA WEB (niveles >= 4: Recepcionista, Gerente, Super Admin).
+   * Niveles 1-3 (Clientes, Instructores, Entrenadores) operan por Bearer token
+   * en la app móvil — no se les emite cookie, por lo que no pueden hidratar
+   * sesión web aunque tengan credenciales válidas.
+   */
+  private setAuthCookieForLevel(
+    res: ExpressResponse,
+    token: string,
+    level: number,
+  ): void {
+    if (level >= 4) this.setAuthCookie(res, token);
   }
 
   @Get('me')
@@ -128,7 +146,7 @@ export class AuthController {
   ) {
     try {
       const result = await this.authService.register(body);
-      this.setAuthCookie(res, result.accessToken);
+      // register siempre crea Clientes (nivel 1): app móvil vía Bearer, sin cookie web.
       return result;
     } catch (error: any) {
       this.logError('register', error);
@@ -158,7 +176,11 @@ export class AuthController {
   ) {
     try {
       const result = await this.authService.login(body);
-      this.setAuthCookie(res, result.accessToken);
+      this.setAuthCookieForLevel(
+        res,
+        result.accessToken,
+        Number(result.user?.level ?? 0),
+      );
       return result;
     } catch (error: any) {
       this.logError('login', error);
@@ -220,8 +242,8 @@ export class AuthController {
         : cookieToken;
       if (!token) throw new Error('Token no proporcionado.');
       const result = await this.authService.refreshToken(token);
-      this.setAuthCookie(res, result.accessToken);
-      return result;
+      this.setAuthCookieForLevel(res, result.accessToken, result.level);
+      return { accessToken: result.accessToken };
     } catch (error: any) {
       this.logError('refresh', error);
       throw error;

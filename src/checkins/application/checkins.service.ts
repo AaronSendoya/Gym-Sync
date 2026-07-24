@@ -1,6 +1,7 @@
 import {
   Inject,
   Injectable,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
   Optional,
@@ -14,6 +15,7 @@ import { UserRole } from '../../roles/domain/user-role.entity';
 import { Gym } from '../../gyms/domain/gym.entity';
 import { Reservation } from '../../reservations/domain/reservation.entity';
 import { GymGateway } from '../../notifications/infrastructure/gym.gateway';
+import { SubscriptionsService } from '../../subscriptions/application/subscriptions.service';
 import {
   type RequestWithUser,
 } from '../../common/security/gym-scope';
@@ -27,6 +29,7 @@ export class CheckinsService {
     @InjectRepository(Gym) private gymRepo: Repository<Gym>,
     @InjectRepository(Reservation) private reservationRepo: Repository<Reservation>,
     @Inject(REQUEST) private readonly request: RequestWithUser,
+    private readonly subscriptionsService: SubscriptionsService,
     @Optional() private readonly gymGateway?: GymGateway,
   ) {}
 
@@ -92,8 +95,15 @@ export class CheckinsService {
       throw new ForbiddenException('Nivel de rol no permite registro de ingreso.');
     }
 
+    let needsMembershipCheck = false;
     if (isClient) {
-      // Clientes requieren reserva activa para hoy en esta sede
+      // Dos vías de acceso para el cliente:
+      //  1. Reserva de clase activa para hoy en esta sucursal (flujo original).
+      //  2. Membresía vigente que cubra esta sucursal (SUCURSAL: sucursal exacta;
+      //     MARCA: cualquier sucursal de la marca) y con sesiones disponibles
+      //     si el plan es por sesiones. Esta vía se valida DENTRO de la
+      //     transacción de aforo (serializada por el lock del gym) para que
+      //     el conteo de sesiones vea los check-ins concurrentes ya commiteados.
       const today = new Date().toISOString().slice(0, 10);
       const reservation = await this.reservationRepo.findOne({
         where: {
@@ -103,11 +113,7 @@ export class CheckinsService {
           status: In(['CONFIRMADA', 'PENDIENTE']),
         },
       });
-      if (!reservation) {
-        throw new ForbiddenException(
-          'El cliente no tiene una reserva activa para hoy en esta sede.',
-        );
-      }
+      needsMembershipCheck = !reservation;
     } else {
       // Staff: validar que pertenece a la sucursal
       const exactMatch = assignments.some(a => Number(a.gymId) === Number(gymId));
@@ -127,9 +133,46 @@ export class CheckinsService {
       }
     }
 
-    const saved = await this.repo.save(
-      this.repo.create({ userId, gymId, method, status: 'ACTIVO' }),
-    );
+    // ── Tope de aforo físico, atómico ────────────────────────────────────────
+    // Lock pessimistic sobre la fila del gym: serializa check-ins concurrentes
+    // a la misma sede — el conteo de activos y el INSERT ocurren en la misma
+    // transacción, imposible superar max_capacity por condición de carrera.
+    const saved = await this.repo.manager.transaction(async (em) => {
+      const gymRow: { max_capacity: number | null }[] = await em.query(
+        'SELECT max_capacity FROM gyms WHERE id = $1 FOR UPDATE',
+        [Number(gymId)],
+      );
+      const maxCapacity = Number(gymRow?.[0]?.max_capacity ?? 0);
+
+      // Membresía del cliente: tras el lock del gym — dos check-ins casi
+      // simultáneos con 1 sesión restante se serializan aquí y el segundo
+      // ve la sesión consumida por el primero.
+      if (needsMembershipCheck) {
+        const membership = await this.subscriptionsService.validateMembershipForCheckIn(
+          userId,
+          Number(gymId),
+        );
+        if (!membership.allowed) {
+          throw new ForbiddenException(membership.reason);
+        }
+      }
+
+      if (maxCapacity > 0) {
+        const active = await em.count(CheckIn, {
+          where: { gymId, checkOutTime: IsNull(), status: 'ACTIVO' },
+        });
+        if (active >= maxCapacity) {
+          throw new ConflictException(
+            'Aforo máximo alcanzado en esta sucursal. Intenta más tarde.',
+          );
+        }
+      }
+
+      return em.save(
+        CheckIn,
+        em.create(CheckIn, { userId, gymId, method, status: 'ACTIVO' }),
+      );
+    });
 
     const current = await this.repo.count({
       where: { gymId, checkOutTime: IsNull(), status: 'ACTIVO' },
@@ -344,7 +387,7 @@ export class CheckinsService {
       return {
         ...mapped,
         userName: c.user ? c.user.email : 'Usuario Desconocido',
-        gymName: c.gym?.name ?? 'Sede no asignada',
+        gymName: c.gym?.name ?? 'Sucursal no asignada',
       };
     });
   }

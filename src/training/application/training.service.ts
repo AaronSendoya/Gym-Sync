@@ -9,8 +9,9 @@ import {
   Logger,
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DeepPartial, IsNull } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, In, Repository, DeepPartial, IsNull } from 'typeorm';
+import { User } from '../../users/domain/user.entity';
 import { UserTraining } from '../domain/user-training.entity';
 import { UserTrainingGoals } from '../domain/user-training-goals.entity';
 import { UserTrainingPreferences } from '../domain/user-training-preferences.entity';
@@ -48,6 +49,7 @@ export class TrainingService {
     private subsRepo: Repository<UserSubscription>,
     @InjectRepository(Routine) private routinesRepo: Repository<Routine>,
     @InjectRepository(Gym) private gymsRepo: Repository<Gym>,
+    @InjectDataSource() private readonly dataSource: DataSource,
     private readonly gateway: GymGateway,
     @Inject(REQUEST) private readonly request: RequestWithUser,
   ) {}
@@ -247,8 +249,9 @@ export class TrainingService {
       gymId = gym ? gym.id : null;
     }
     if (!gymId) {
+      // 'ACTIVA' es el estado estándar; 'ACTIVO' tolera datos legados
       const sub = await this.subsRepo.findOne({
-        where: { userId, status: 'ACTIVO' },
+        where: { userId, status: In(['ACTIVA', 'ACTIVO']) },
         order: { createdAt: 'DESC' },
       });
       gymId = sub?.homeGymId ?? null;
@@ -331,22 +334,7 @@ export class TrainingService {
       );
     }
 
-    // Prevenir sesiones paralelas para la misma rutina
     const targetUserId = Number(sData.userId ?? this.request.user?.userId ?? 0);
-    if (targetUserId && sData.routineId) {
-      const activeSession = await this.sessionsRepo.findOne({
-        where: {
-          userId: targetUserId,
-          routineId: Number(sData.routineId),
-          finishedAt: IsNull(),
-        },
-      });
-      if (activeSession) {
-        throw new ConflictException(
-          'Ya tienes una sesión activa para esta rutina. Finalízala antes de iniciar una nueva.',
-        );
-      }
-    }
 
     const sessionData: DeepPartial<WorkoutSession> = { ...sData };
 
@@ -366,28 +354,72 @@ export class TrainingService {
       if (!gym) sessionData.gymId = null;
     }
 
-    const session = await this.sessionsRepo.save(
-      this.sessionsRepo.create(sessionData),
-    );
-    if (sets?.length) {
-      const items = sets.map((s: any) =>
-        this.setsRepo.create({
-          sessionId: session.id,
-          setNumber: s.setNumber,
-          routineExerciseId: s.routineExerciseId ?? null,
-          exerciseId: s.exerciseId ?? null,
-          weightUsedKg: s.weightUsedKg ?? null,
-          repsCompleted: s.repsCompleted ?? null,
-          durationSeconds: s.durationSeconds ?? null,
-          distanceMeters: s.distanceMeters ?? null,
-          restTakenSeconds: s.restTakenSeconds ?? null,
-          ratingPerceivedExertion: s.ratingPerceivedExertion ?? null,
-          metadata: s.metadata ?? null,
-        } as DeepPartial<WorkoutSet>),
+    // Validación de sesión duplicada + INSERT en una sola transacción con lock
+    // pessimistic_write sobre la fila del usuario: dos requests concurrentes
+    // (doble tap) se serializan aquí — la segunda ve la sesión de la primera
+    // y recibe 409, en vez de que ambas pasen el check antes de insertar (TOCTOU).
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    let sessionId: number;
+    try {
+      if (targetUserId) {
+        await queryRunner.manager.findOne(User, {
+          where: { id: targetUserId },
+          select: { id: true },
+          lock: { mode: 'pessimistic_write' },
+        });
+      }
+
+      if (targetUserId && sData.routineId) {
+        const activeSession = await queryRunner.manager.findOne(WorkoutSession, {
+          where: {
+            userId: targetUserId,
+            routineId: Number(sData.routineId),
+            finishedAt: IsNull(),
+          },
+        });
+        if (activeSession) {
+          throw new ConflictException(
+            'Ya tienes una sesión activa para esta rutina. Finalízala antes de iniciar una nueva.',
+          );
+        }
+      }
+
+      const session = await queryRunner.manager.save(
+        WorkoutSession,
+        queryRunner.manager.create(WorkoutSession, sessionData),
       );
-      await this.setsRepo.save(items);
+      sessionId = session.id;
+
+      if (sets?.length) {
+        const items = sets.map((s: any) =>
+          queryRunner.manager.create(WorkoutSet, {
+            sessionId: session.id,
+            setNumber: s.setNumber,
+            routineExerciseId: s.routineExerciseId ?? null,
+            exerciseId: s.exerciseId ?? null,
+            weightUsedKg: s.weightUsedKg ?? null,
+            repsCompleted: s.repsCompleted ?? null,
+            durationSeconds: s.durationSeconds ?? null,
+            distanceMeters: s.distanceMeters ?? null,
+            restTakenSeconds: s.restTakenSeconds ?? null,
+            ratingPerceivedExertion: s.ratingPerceivedExertion ?? null,
+            metadata: s.metadata ?? null,
+          } as DeepPartial<WorkoutSet>),
+        );
+        await queryRunner.manager.save(WorkoutSet, items);
+      }
+
+      await queryRunner.commitTransaction();
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
     }
-    const mapped = await this.findOneSession(session.id);
+
+    const mapped = await this.findOneSession(sessionId);
     this.emitSessionUpdateToTrainer(mapped as any).catch(() => {});
     return mapped;
   }

@@ -1,5 +1,6 @@
 import {
   Entity,
+  Index,
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
@@ -11,6 +12,13 @@ import { User } from '../../users/domain/user.entity';
 import { Gym } from '../../gyms/domain/gym.entity';
 import { WorkoutSet } from './workout-set.entity';
 
+// Garantía a nivel de BD (defensa en profundidad del lock de aplicación):
+// como máximo UNA sesión activa (finished_at IS NULL) por usuario y rutina.
+// No afecta sesiones freestyle (routine_id NULL no participa en unicidad).
+@Index('uq_active_session_per_user_routine', ['userId', 'routineId'], {
+  unique: true,
+  where: '"finished_at" IS NULL AND "routine_id" IS NOT NULL',
+})
 @Entity('workout_sessions')
 export class WorkoutSession {
   @PrimaryGeneratedColumn()

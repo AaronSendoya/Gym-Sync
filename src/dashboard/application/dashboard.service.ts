@@ -1,4 +1,4 @@
-import { Inject, Injectable, Scope } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, Scope } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
@@ -13,9 +13,36 @@ export class DashboardService {
     @Inject(REQUEST) private readonly request: RequestWithUser,
   ) {}
 
-  private gymId(): number | null {
+  /**
+   * Gyms visibles para el caller. null = sin filtro (Super Admin, level >= 10).
+   * Gerente (5): marca + sucursales hijas. Recepcionista (4): su sucursal exacta.
+   */
+  private async visibleGymIds(): Promise<number[] | null> {
     const u = this.request.user;
-    return (u?.level ?? 0) === 5 ? (u?.gymId ?? null) : null;
+    const level = u?.level ?? 0;
+
+    if (level >= 10) return null;
+
+    if (level === 5) {
+      if (u?.brandId !== null && u?.brandId !== undefined) {
+        const rows = await this.db.query<{ id: number }[]>(
+          `SELECT id FROM gyms WHERE id = $1 OR parent_id = $1`,
+          [Number(u.brandId)],
+        );
+        return rows.map((r) => Number(r.id));
+      }
+      if (u?.gymId !== null && u?.gymId !== undefined) return [Number(u.gymId)];
+      throw new ForbiddenException('El gerente no tiene una marca o sucursal asignada.');
+    }
+
+    if (level === 4) {
+      if (u?.gymId === null || u?.gymId === undefined) {
+        throw new ForbiddenException('El usuario no tiene una sucursal asignada.');
+      }
+      return [Number(u.gymId)];
+    }
+
+    throw new ForbiddenException('Nivel insuficiente para acceder al dashboard.');
   }
 
   /** [dateSelect, whereClause, groupBy] para columnas TIMESTAMP */
@@ -71,33 +98,33 @@ export class DashboardService {
   }
 
   async getSummary(period: Period = 'week') {
-    const gymId = this.gymId();
+    const gymIds = await this.visibleGymIds();
 
     // ── Users ──────────────────────────────────────────────────────────────────
     const [u_s, u_w, u_g] = this.ts('u.created_at', period);
     const [c_s, c_w, c_g] = this.ts('created_at', period);
 
     const [usersTotal, usersHistory] = await Promise.all([
-      gymId !== null
+      gymIds !== null
         ? this.db.query<{ total: string }[]>(
             `SELECT COUNT(DISTINCT u.id) AS total
              FROM users u
-             INNER JOIN user_roles ur ON ur.user_id = u.id AND ur.gym_id = $1
+             INNER JOIN user_roles ur ON ur.user_id = u.id AND ur.gym_id = ANY($1)
              WHERE u.is_active = true`,
-            [gymId],
+            [gymIds],
           )
         : this.db.query<{ total: string }[]>(
             `SELECT COUNT(*) AS total FROM users WHERE is_active = true`,
           ),
 
-      gymId !== null
+      gymIds !== null
         ? this.db.query<{ date: string; count: string }[]>(
             `SELECT ${u_s} AS date, COUNT(DISTINCT u.id)::text AS count
              FROM users u
-             INNER JOIN user_roles ur ON ur.user_id = u.id AND ur.gym_id = $1
+             INNER JOIN user_roles ur ON ur.user_id = u.id AND ur.gym_id = ANY($1)
              WHERE ${u_w}
              GROUP BY ${u_g}`,
-            [gymId],
+            [gymIds],
           )
         : this.db.query<{ date: string; count: string }[]>(
             `SELECT ${c_s} AS date, COUNT(*)::text AS count
@@ -111,24 +138,24 @@ export class DashboardService {
     const [ck_s, ck_w, ck_g] = this.ts('check_in_time', period);
 
     const [checkinsTotal, checkinsHistory] = await Promise.all([
-      gymId !== null
+      gymIds !== null
         ? this.db.query<{ total: string }[]>(
             `SELECT COUNT(*) AS total FROM check_ins
-             WHERE gym_id = $1 AND DATE(check_in_time) = CURRENT_DATE`,
-            [gymId],
+             WHERE gym_id = ANY($1) AND DATE(check_in_time) = CURRENT_DATE`,
+            [gymIds],
           )
         : this.db.query<{ total: string }[]>(
             `SELECT COUNT(*) AS total FROM check_ins
              WHERE DATE(check_in_time) = CURRENT_DATE`,
           ),
 
-      gymId !== null
+      gymIds !== null
         ? this.db.query<{ date: string; count: string }[]>(
             `SELECT ${ck_s} AS date, COUNT(*)::text AS count
              FROM check_ins
-             WHERE gym_id = $1 AND ${ck_w}
+             WHERE gym_id = ANY($1) AND ${ck_w}
              GROUP BY ${ck_g}`,
-            [gymId],
+            [gymIds],
           )
         : this.db.query<{ date: string; count: string }[]>(
             `SELECT ${ck_s} AS date, COUNT(*)::text AS count
@@ -142,24 +169,24 @@ export class DashboardService {
     const [r_s, r_w, r_g] = this.dt('reservation_date', period);
 
     const [reservationsTotal, reservationsHistory] = await Promise.all([
-      gymId !== null
+      gymIds !== null
         ? this.db.query<{ total: string }[]>(
             `SELECT COUNT(*) AS total FROM reservations
-             WHERE gym_id = $1 AND reservation_date = CURRENT_DATE`,
-            [gymId],
+             WHERE gym_id = ANY($1) AND reservation_date = CURRENT_DATE`,
+            [gymIds],
           )
         : this.db.query<{ total: string }[]>(
             `SELECT COUNT(*) AS total FROM reservations
              WHERE reservation_date = CURRENT_DATE`,
           ),
 
-      gymId !== null
+      gymIds !== null
         ? this.db.query<{ date: string; count: string }[]>(
             `SELECT ${r_s} AS date, COUNT(*)::text AS count
              FROM reservations
-             WHERE gym_id = $1 AND ${r_w}
+             WHERE gym_id = ANY($1) AND ${r_w}
              GROUP BY ${r_g}`,
-            [gymId],
+            [gymIds],
           )
         : this.db.query<{ date: string; count: string }[]>(
             `SELECT ${r_s} AS date, COUNT(*)::text AS count

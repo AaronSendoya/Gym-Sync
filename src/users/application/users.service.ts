@@ -243,17 +243,36 @@ export class UsersService {
       if (callerLevel >= 10) {
         // Super Admin: sin restricción territorial
       } else if (callerLevel === 5) {
-        // Gerente: marca propia + sucursales hijas
+        // Gerente: staff de su marca + CLIENTES cuya membresía (activa o
+        // vencida) pertenece a su territorio. Los clientes no tienen gym_id
+        // en user_roles (transversales) — su vínculo territorial es la
+        // membresía (user_subscriptions.home_gym_id).
         if (!callerGymId) throw new ForbiddenException('Gerente sin marca asignada.');
         qb.andWhere(
-          'user.id IN (SELECT ur.user_id FROM user_roles ur LEFT JOIN gyms g ON g.id = ur.gym_id WHERE ur.gym_id = :callerGymId OR g.parent_id = :callerGymId)',
+          `(
+            user.id IN (SELECT ur.user_id FROM user_roles ur LEFT JOIN gyms g ON g.id = ur.gym_id WHERE ur.gym_id = :callerGymId OR g.parent_id = :callerGymId)
+            OR user.id IN (
+              SELECT us.user_id FROM user_subscriptions us
+              LEFT JOIN gyms sg ON sg.id = us.home_gym_id
+              WHERE (us.home_gym_id = :callerGymId OR sg.parent_id = :callerGymId)
+                AND us.status IN ('ACTIVA', 'ACTIVO', 'VENCIDA')
+            )
+          )`,
           { callerGymId },
         );
       } else if (callerLevel === 4) {
-        // Recepcionista: solo su sucursal
+        // Recepcionista: staff de su sucursal + CLIENTES con membresía
+        // (activa o vencida) inscrita en su sucursal.
         if (!callerGymId) throw new ForbiddenException('Recepcionista sin sucursal asignada.');
         qb.andWhere(
-          'user.id IN (SELECT ur.user_id FROM user_roles ur WHERE ur.gym_id = :callerGymId)',
+          `(
+            user.id IN (SELECT ur.user_id FROM user_roles ur WHERE ur.gym_id = :callerGymId)
+            OR user.id IN (
+              SELECT us.user_id FROM user_subscriptions us
+              WHERE us.home_gym_id = :callerGymId
+                AND us.status IN ('ACTIVA', 'ACTIVO', 'VENCIDA')
+            )
+          )`,
           { callerGymId },
         );
       } else {
@@ -316,6 +335,7 @@ export class UsersService {
   async searchClientUsers(
     search?: string,
     limit = 20,
+    offset = 0,
   ): Promise<{ id: number; email: string; firstName: string; lastName: string; ci: string | null }[]> {
     const qb = this.usersRepo
       .createQueryBuilder('user')
@@ -324,7 +344,12 @@ export class UsersService {
       .innerJoin('userRole.role', 'role')
       .select(['user.id', 'user.email', 'profile.firstName', 'profile.lastName', 'profile.ci'])
       .where('role.hierarchy_level = :level', { level: 1 })
-      .andWhere('user.isActive = true');
+      .andWhere('user.isActive = true')
+      // Orden estable: sin esto, paginar con offset (limit+desplazamiento)
+      // puede repetir o saltar filas entre páginas — Postgres no garantiza
+      // el mismo orden en cada ejecución sin un ORDER BY explícito.
+      .orderBy('profile.firstName', 'ASC')
+      .addOrderBy('user.id', 'ASC');
 
     if (search?.trim()) {
       qb.andWhere(
@@ -339,7 +364,7 @@ export class UsersService {
       );
     }
 
-    const rows = await qb.take(limit).getMany();
+    const rows = await qb.take(limit).skip(offset).getMany();
     return rows.map(u => ({
       id:        u.id,
       email:     u.email,
@@ -885,7 +910,7 @@ export class UsersService {
     return { success: true };
   }
 
-  async getChatProfile(targetUserId: number) {
+  async getChatProfile(targetUserId: number, callerLevel = 0) {
     const userRole = await this.userRolesRepo.findOne({
       where: { user: { id: targetUserId } },
       relations: ['user', 'user.profile', 'role', 'gym', 'gym.parent'],
@@ -902,7 +927,9 @@ export class UsersService {
       firstName:  userRole.user.profile?.firstName  ?? '',
       lastName:   userRole.user.profile?.lastName   ?? '',
       gender:     (userRole.user.profile as any)?.gender ?? 'No especificado',
-      email:      userRole.user.email ?? null,
+      // Email es PII de contacto: visible solo para staff administrativo (>= 4).
+      // Clientes, instructores y entrenadores chatean dentro de la plataforma.
+      email:      callerLevel >= 4 ? (userRole.user.email ?? null) : null,
       roleName:   userRole.role?.name ?? '',
       level,
       brandName:  !isClient && userRole.gym?.parent ? userRole.gym.parent.name : null,

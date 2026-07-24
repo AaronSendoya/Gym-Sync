@@ -851,10 +851,20 @@ export class StaffService {
     });
   }
 
+  /**
+   * PII de contacto (phone, ci, email) solo visible para nivel >= 4.
+   * Instructores/Entrenadores (2-3) reciben null: previene fuga de retención
+   * de clientes hacia el personal operativo.
+   */
+  private piiVisible(): boolean {
+    return Number(this.request.user?.level ?? 0) >= 4;
+  }
+
   async getPendingAdvisorRequests(): Promise<
     { id: number; clientId: number; clientName: string; phone: string | null; createdAt: string }[]
   > {
     const userId = this.getAuthUserId();
+    const piiVisible = this.piiVisible();
 
     const rows = await this.advisorRepo
       .createQueryBuilder('ca')
@@ -877,8 +887,11 @@ export class StaffService {
     return rows.map((r) => ({
       id: Number(r.id),
       clientId: Number(r.clientId),
-      clientName: (r.clientName as string)?.trim() || (r.clientEmail as string) || '—',
-      phone: (r.phone as string) || null,
+      clientName:
+        (r.clientName as string)?.trim() ||
+        (piiVisible ? (r.clientEmail as string) : '') ||
+        '—',
+      phone: piiVisible ? (r.phone as string) || null : null,
       createdAt: new Date(r.createdAt as string).toISOString(),
     }));
   }
@@ -915,6 +928,7 @@ export class StaffService {
     { id: number; clientId: number; clientName: string; phone: string | null; ci: string | null; email: string | null }[]
   > {
     const userId = this.getAuthUserId();
+    const piiVisible = this.piiVisible();
 
     const rows = await this.advisorRepo
       .createQueryBuilder('ca')
@@ -937,10 +951,13 @@ export class StaffService {
     return rows.map((r) => ({
       id: Number(r.id),
       clientId: Number(r.clientId),
-      clientName: (r.clientName as string)?.trim() || (r.clientEmail as string) || '—',
-      phone: (r.phone as string) || null,
-      ci: (r.ci as string) || null,
-      email: (r.clientEmail as string) || null,
+      clientName:
+        (r.clientName as string)?.trim() ||
+        (piiVisible ? (r.clientEmail as string) : '') ||
+        '—',
+      phone: piiVisible ? (r.phone as string) || null : null,
+      ci: piiVisible ? (r.ci as string) || null : null,
+      email: piiVisible ? (r.clientEmail as string) || null : null,
     }));
   }
 
@@ -1091,12 +1108,14 @@ export class StaffService {
       }),
     ]);
 
+    const piiVisible = this.piiVisible();
+
     return {
       clientId,
       firstName: profile?.firstName ?? '',
       lastName: profile?.lastName ?? '',
-      phone: profile?.phone ?? null,
-      ci: profile?.ci ?? null,
+      phone: piiVisible ? (profile?.phone ?? null) : null,
+      ci: piiVisible ? (profile?.ci ?? null) : null,
       gender: profile?.gender ?? null,
       heightCm: profile?.heightCm != null ? Number(profile.heightCm) : null,
       medicalConditions: profile?.medicalConditions ?? null,
