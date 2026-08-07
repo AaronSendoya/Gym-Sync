@@ -5,8 +5,13 @@ import {
   IsInt,
   IsNumber,
   IsBoolean,
+  IsPositive,
+  IsDateString,
   Min,
 } from 'class-validator';
+
+export const PAYMENT_METHODS = ['EFECTIVO', 'TRANSFERENCIA', 'QR', 'TARJETA'] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
@@ -204,7 +209,7 @@ export class UpdateSubscriptionDto {
 
   @ApiPropertyOptional({ example: '2026-08-31' })
   @IsOptional()
-  @IsString()
+  @IsDateString()
   endDate?: string;
 
   @ApiPropertyOptional({ example: true })
@@ -216,6 +221,7 @@ export class UpdateSubscriptionDto {
 export class CreatePaymentDto {
   @ApiProperty({ example: 350.0 })
   @IsNumber()
+  @IsPositive()
   amount: number;
 
   @ApiPropertyOptional({ example: 'BOB', description: 'Moneda' })
@@ -227,8 +233,8 @@ export class CreatePaymentDto {
     example: 'TRANSFERENCIA',
     description: 'EFECTIVO | TRANSFERENCIA | QR | TARJETA',
   })
-  @IsString()
-  paymentMethod: string;
+  @IsIn(PAYMENT_METHODS)
+  paymentMethod: PaymentMethod;
 
   @ApiPropertyOptional({ example: 'REF-2026-001' })
   @IsOptional()

@@ -22,7 +22,12 @@
     "db:seed": "node dist/scripts/seeder.js",
     "db:clean-exercises": "npx ts-node src/scripts/reset-exercises.ts",
     "db:video-urls": "npx ts-node src/scripts/seed-video-urls.ts",
-    "db:patch-role": "npx ts-node src/scripts/patch-role-user-to-cliente.ts"
+    "db:patch-role": "npx ts-node src/scripts/patch-role-user-to-cliente.ts",
+    "typeorm": "typeorm-ts-node-commonjs -d src/config/data-source.migrations.ts",
+    "migration:generate": "npm run typeorm -- migration:generate",
+    "migration:run": "npm run typeorm -- migration:run",
+    "migration:revert": "npm run typeorm -- migration:revert",
+    "migration:show": "npm run typeorm -- migration:show"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^3.1.3",

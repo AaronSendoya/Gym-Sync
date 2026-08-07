@@ -5,6 +5,7 @@ import { UserSubscription } from './domain/user-subscription.entity';
 import { SubscriptionPayment } from './domain/subscription-payment.entity';
 import { MembershipCheckIn } from './domain/membership-check-in.entity';
 import { MembershipFreezeLog } from './domain/membership-freeze-log.entity';
+import { User } from '../users/domain/user.entity';
 import { SubscriptionsService } from './application/subscriptions.service';
 import { MembershipExpirationService } from './application/membership-expiration.service';
 import { MembershipRemindersService } from './application/membership-reminders.service';
@@ -20,6 +21,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
       SubscriptionPayment,
       MembershipCheckIn,
       MembershipFreezeLog,
+      User,
     ]),
     PushNotificationsModule,
     NotificationsModule,

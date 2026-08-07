@@ -5,7 +5,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CacheModule } from '@nestjs/cache-manager';
+import { join } from 'path';
 import { JwtAuthGuard } from './auth/infrastructure/guards/jwt-auth.guard';
+import { validateEnv } from './config/env.validation';
 
 // ── Domain Modules (Estructura Modular por Dominios) ─────────
 import { AuthModule } from './auth/auth.module';
@@ -38,7 +40,7 @@ import { MessagesModule } from './messages/messages.module';
   ],
   imports: [
     // ── Configuration ──────────────────────────────────────────
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env', validate: validateEnv }),
 
     // ── Rate Limiting ───────────────────────────────────────────
     // Límite global generoso; auth endpoints lo sobreescriben con @Throttle()
@@ -64,6 +66,10 @@ import { MessagesModule } from './messages/messages.module';
         autoLoadEntities: true,
         synchronize: cfg.get('NODE_ENV') !== 'production',
         dropSchema: cfg.get('NODE_ENV') !== 'production' && cfg.get<string>('DROP_SCHEMA') === 'true',
+        // En producción no hay synchronize — el esquema lo crean/evolucionan las migraciones
+        // versionadas en src/migrations, aplicadas automáticamente al arrancar (ver migrationsRun).
+        migrations: [join(__dirname, 'migrations', '*{.ts,.js}')],
+        migrationsRun: cfg.get('NODE_ENV') === 'production',
         logging: cfg.get('NODE_ENV') === 'production'
           ? ['error', 'migration', 'warn']
           : ['query', 'error', 'warn'],

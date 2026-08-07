@@ -15,6 +15,7 @@ import {
   HttpCode,
   HttpStatus,
   ValidationPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -143,9 +144,15 @@ export class UsersController {
 
   @Get(':id')
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Obtener usuario por ID' })
+  @ApiOperation({ summary: 'Obtener usuario por ID (uno mismo, o nivel jerárquico >= 4)' })
   @ApiParam({ name: 'id', example: 1 })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
+  @ApiResponse({ status: 403, description: 'Solo el propio usuario o staff con nivel >= 4 pueden consultar este recurso' })
+  async findOne(@Req() req: RequestWithUser, @Param('id', ParseIntPipe) id: number) {
+    const callerId = Number(req.user!.userId);
+    const callerLevel = Number(req.user!.level ?? 0);
+    if (callerId !== id && callerLevel < 4) {
+      throw new ForbiddenException('No tienes permiso para consultar este usuario.');
+    }
     const user = await this.usersService.findOne(id);
     return this.usersService.toPublicDto(user);
   }

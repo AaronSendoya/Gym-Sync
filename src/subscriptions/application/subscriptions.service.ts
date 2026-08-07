@@ -126,6 +126,26 @@ export class SubscriptionsService {
   }
 
   /**
+   * Variante de effectiveStatus() que TAMBIÉN cubre planes por sesiones: una
+   * fila puede seguir dentro de su windowDays (no vencida por fecha) pero ya
+   * sin sesiones disponibles — sin este chequeo, listas como Inscripciones o
+   * el calendario de check-in mostraban "ACTIVA" para una membresía que en
+   * la práctica ya no deja entrar (validateMembershipForCheckIn si la
+   * bloquea), confundiendo al staff al intentar operar sobre ella (ej.
+   * "Congelar" rechazándola como vencida sin que la tabla lo anticipara).
+   * Solo consulta check-ins (computeSessionsUsed) cuando hace falta: filas ya
+   * no-ACTIVA por fecha, o de plan por fecha (sin sessionsIncluded), no
+   * pagan ese costo extra.
+   */
+  private async effectiveStatusWithSessions(sub: UserSubscription): Promise<string> {
+    const base = this.effectiveStatus(sub.status, sub.endDate);
+    if (base !== 'ACTIVA' && base !== 'ACTIVO') return base;
+    if (sub.plan?.sessionsIncluded == null) return base;
+    const used = await this.computeSessionsUsed(sub);
+    return used >= Number(sub.plan.sessionsIncluded) ? 'VENCIDA' : base;
+  }
+
+  /**
    * Verifica si un gymId pertenece al territorio del caller (mismo criterio
    * que activities.service.ts::gymInTerritory, para que "Marca" signifique
    * lo mismo en todo el sistema):
@@ -714,6 +734,7 @@ export class SubscriptionsService {
       .leftJoinAndSelect('user.profile', 'profile')
       .leftJoinAndSelect('sub.plan', 'plan')
       .leftJoinAndSelect('sub.homeGym', 'homeGym')
+      .leftJoinAndSelect('homeGym.parent', 'brand')
       .orderBy('sub.createdAt', 'DESC')
       .take(take)
       .skip(skip);
@@ -737,12 +758,16 @@ export class SubscriptionsService {
     }
 
     const [data, total] = await qb.getManyAndCount();
-    // Estado efectivo por fecha, sin esperar al cron nocturno — ver
-    // effectiveStatus(). Mutación segura: instancias recién materializadas
-    // por esta query, nunca se guardan de nuevo en este método.
-    data.forEach((sub) => {
-      sub.status = this.effectiveStatus(sub.status, sub.endDate);
-    });
+    // Estado efectivo por fecha Y sesiones agotadas, sin esperar al cron
+    // nocturno — ver effectiveStatusWithSessions(). En paralelo: solo paga el
+    // costo de computeSessionsUsed() para filas ACTIVA de plan por sesiones,
+    // el resto resuelve sin query extra. Mutación segura: instancias recién
+    // materializadas por esta query, nunca se guardan de nuevo en este método.
+    await Promise.all(
+      data.map(async (sub) => {
+        sub.status = await this.effectiveStatusWithSessions(sub);
+      }),
+    );
     return { data, meta: { total, limit: take, offset: skip } };
   }
 
@@ -768,10 +793,42 @@ export class SubscriptionsService {
     }
 
     const list = await qb.getMany();
-    list.forEach((sub) => {
-      sub.status = this.effectiveStatus(sub.status, sub.endDate);
-    });
+    // effectiveStatusWithSessions: mismo motivo que findAllSubscriptions —
+    // getCheckinCalendar depende de este status para elegir la fila
+    // bloqueante, así que también debe reflejar sesiones agotadas.
+    await Promise.all(
+      list.map(async (sub) => {
+        sub.status = await this.effectiveStatusWithSessions(sub);
+      }),
+    );
     return list;
+  }
+
+  /**
+   * Nombre del plan bloqueante (ACTIVA/ACTIVO/CONGELADA) de cada userId dado,
+   * o null si no tiene ninguno. Usado por el buscador de "Inscribir Cliente"
+   * para avisar antes de intentar inscribir a alguien que ya tiene membresía
+   * — sin esto el staff solo se entera al chocar con el 409 de
+   * uq_active_membership_per_user. Global a propósito (no territorial): el
+   * índice único que evita duplicados es global, así que el aviso debe serlo
+   * también sin importar en qué sucursal esté la membresía existente.
+   */
+  async findActivePlanNamesByUserIds(userIds: number[]): Promise<Record<number, string | null>> {
+    const result: Record<number, string | null> = {};
+    userIds.forEach((id) => { result[id] = null; });
+    if (userIds.length === 0) return result;
+
+    const rows = await this.subsRepo
+      .createQueryBuilder('sub')
+      .innerJoin('sub.plan', 'plan')
+      .select('sub.user_id', 'userId')
+      .addSelect('plan.name', 'planName')
+      .where('sub.user_id IN (:...userIds)', { userIds })
+      .andWhere('sub.status IN (:...st)', { st: [...BLOCKING_MEMBERSHIP_STATUSES] })
+      .getRawMany<{ userId: number; planName: string }>();
+
+    rows.forEach((r) => { result[Number(r.userId)] = r.planName; });
+    return result;
   }
 
   async findOneSubscription(id: number) {
@@ -816,9 +873,31 @@ export class SubscriptionsService {
     const prevStatus = s.status;
     const prevEndDate = dateOnlyStr(s.endDate);
 
-    // Congelar: registrar el inicio del congelamiento.
+    // Congelar: registrar el inicio del congelamiento. Solo permitido desde
+    // ACTIVA y EN VIGENCIA — ni la UI (el botón solo aparece en filas
+    // ACTIVA/CONGELADA) ni el status crudo en BD alcanzan por sí solos: una
+    // fila puede seguir marcada 'ACTIVA' en BD aunque ya venció por fecha o
+    // agotó sus sesiones (el cron nocturno todavía no la pasó a VENCIDA), y
+    // sin este chequeo se podía "congelar" una membresía muerta vía llamada
+    // directa a la API, reviviéndola con una fecha de vencimiento absurda al
+    // descongelar. Mismo criterio de vencimiento que createSubscription.
     const isFreezing = data?.status === 'CONGELADA' && prevStatus !== 'CONGELADA';
     if (isFreezing) {
+      if (prevStatus !== 'ACTIVA' && prevStatus !== 'ACTIVO') {
+        throw new BadRequestException(
+          `Solo se puede congelar una membresía ACTIVA. Esta membresía está ${prevStatus.toLowerCase()}.`,
+        );
+      }
+      let expired = dateOnlyStr(s.endDate) < todayStr();
+      if (!expired && s.plan?.sessionsIncluded != null) {
+        const used = await this.computeSessionsUsed(s);
+        expired = used >= Number(s.plan.sessionsIncluded);
+      }
+      if (expired) {
+        throw new BadRequestException(
+          'No se puede congelar: la membresía ya está vencida (fuera de vigencia).',
+        );
+      }
       s.frozenAt = new Date();
     }
 
@@ -924,7 +1003,7 @@ export class SubscriptionsService {
    * territorio (mismo criterio que el resto del módulo): Recepcionista su
    * sucursal, Gerente marca+hijas, Super Admin todo.
    */
-  async findFreezeLogs(params: { limit?: number; offset?: number } = {}) {
+  async findFreezeLogs(params: { limit?: number; offset?: number; search?: string } = {}) {
     const take = Math.min(Math.max(Number(params.limit) || 100, 1), 200);
     const skip = Math.max(Number(params.offset) || 0, 0);
 
@@ -948,6 +1027,17 @@ export class SubscriptionsService {
       } else {
         qb.andWhere('log.home_gym_id = :callerGymId', { callerGymId: mg });
       }
+    }
+
+    // Búsqueda por nombre/email — del cliente afectado O de quién realizó la acción.
+    if (params.search?.trim()) {
+      qb.andWhere(
+        `(CONCAT(profile.first_name, ' ', profile.last_name) ILIKE :search
+          OR user.email ILIKE :search
+          OR CONCAT(performedByProfile.first_name, ' ', performedByProfile.last_name) ILIKE :search
+          OR performedBy.email ILIKE :search)`,
+        { search: `%${params.search.trim()}%` },
+      );
     }
 
     const [data, total] = await qb.getManyAndCount();

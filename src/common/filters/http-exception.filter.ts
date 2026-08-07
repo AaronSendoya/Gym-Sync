@@ -53,7 +53,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
         message = 'Ya existe un registro con esos datos. Actualiza la página e intenta de nuevo.';
         this.logger.warn(`Unique violation: ${exception.message}`);
       } else {
-        message = exception.message;
+        // En producción nunca exponemos el mensaje crudo (puede traer texto de Postgres,
+        // rutas internas, etc.) — se sigue registrando completo en el log del servidor.
+        message = process.env.NODE_ENV === 'production'
+          ? 'Internal server error'
+          : exception.message;
         this.logger.error(
           `Unhandled exception: ${exception.message}`,
           exception.stack,

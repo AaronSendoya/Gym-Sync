@@ -4,6 +4,12 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
+if (!process.env.DB_PASSWORD) {
+  throw new Error(
+    'Falta DB_PASSWORD en .env — configúralo antes de correr comandos de TypeORM CLI.',
+  );
+}
+
 // 🔹 MENSAJERÍA
 import { Conversation } from '../messages/domain/conversation.entity';
 import { DirectMessage } from '../messages/domain/direct-message.entity';
@@ -73,7 +79,7 @@ export const AppDataSource = new DataSource({
   host: process.env.DB_HOST || 'localhost',
   port: Number(process.env.DB_PORT) || 5432,
   username: process.env.DB_USERNAME || 'postgres',
-  password: process.env.DB_PASSWORD || 'gymsync_dev_only',
+  password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE || 'gymsync_db',
   synchronize: true,
   logging: process.env.NODE_ENV === 'development',

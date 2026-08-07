@@ -130,6 +130,22 @@ export class SubscriptionsController {
     return this.svc.findByUser(uid);
   }
 
+  // Registrado antes de GET :id (mismo motivo que el resto de rutas de
+  // segmento literal de este controller). Usado por el buscador de
+  // "Inscribir Cliente" para mostrar si cada resultado ya tiene membresía.
+  @Get('active-status')
+  @UseGuards(AdminLevelGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Nombre del plan bloqueante (o null) para una lista de userIds (staff nivel >= 4)' })
+  @ApiQuery({ name: 'userIds', required: true, description: 'IDs de usuario separados por coma' })
+  findActiveStatus(@Query('userIds') userIds: string) {
+    const ids = (userIds ?? '')
+      .split(',')
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    return this.svc.findActivePlanNamesByUserIds(ids);
+  }
+
   // Ruta de 3 segmentos ('checkin-calendar' literal): no colisiona con :id
   // (1 segmento) sin importar el orden, pero se registra junto a las rutas
   // por-usuario por claridad temática.
@@ -176,10 +192,12 @@ export class SubscriptionsController {
   findFreezeLogs(
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Query('search') search?: string,
   ) {
     return this.svc.findFreezeLogs({
       limit: limit ? Number(limit) : undefined,
       offset: offset ? Number(offset) : undefined,
+      search,
     });
   }
 
