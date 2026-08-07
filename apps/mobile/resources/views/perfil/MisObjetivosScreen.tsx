@@ -332,9 +332,12 @@ export const MisObjetivosScreen = () => {
 
     return (
       <SafeAreaView style={s.container}>
-        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-          <MaterialCommunityIcons name="chevron-left" size={22} color="#fff" />
-        </TouchableOpacity>
+        <View style={s.topBar}>
+          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+            <MaterialCommunityIcons name="chevron-left" size={22} color="#fff" />
+          </TouchableOpacity>
+          <Text style={s.topBarTitle}>Mis Objetivos</Text>
+        </View>
         <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
 
           {/* ── Cabecera del objetivo ── */}
@@ -402,9 +405,12 @@ export const MisObjetivosScreen = () => {
 
   return (
     <SafeAreaView style={s.container}>
-      <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-        <MaterialCommunityIcons name="chevron-left" size={22} color="#fff" />
-      </TouchableOpacity>
+      <View style={s.topBar}>
+        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+          <MaterialCommunityIcons name="chevron-left" size={22} color="#fff" />
+        </TouchableOpacity>
+        <Text style={s.topBarTitle}>Mis Objetivos</Text>
+      </View>
       <ScrollView contentContainerStyle={s.scrollContent}>
 
         <Text style={s.heading}>¿Cuál es tu objetivo?</Text>
@@ -527,7 +533,9 @@ const s = StyleSheet.create({
   warnText:        { color: '#f5a623', fontSize: 12, flex: 1 },
   clearBtn:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: '#2a0a0a', backgroundColor: '#110000', marginTop: 8 },
   clearBtnText:    { color: '#ff4444', fontWeight: '700', fontSize: 14 },
-  backBtn:         { width: 40, height: 40, margin: 12, backgroundColor: '#1C1C1E', borderRadius: 12, borderWidth: 1, borderColor: '#3A3A3C', justifyContent: 'center', alignItems: 'center' },
+  topBar:          { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
+  backBtn:         { width: 40, height: 40, backgroundColor: '#1C1C1E', borderRadius: 12, borderWidth: 1, borderColor: '#3A3A3C', justifyContent: 'center', alignItems: 'center' },
+  topBarTitle:     { flex: 1, color: '#fff', fontSize: 18, fontWeight: '700' },
 });
 
 // ─── Estilos del panel de recomendaciones ─────────────────────────────────────

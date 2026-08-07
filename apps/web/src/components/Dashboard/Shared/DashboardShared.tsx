@@ -1,7 +1,9 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import type { CSSProperties } from 'react';
+import { X, Inbox } from 'lucide-react';
 import { guardClose } from './DashboardShared.utils';
+import { btnPrimary, btnGhost, emptyIconWrapCls } from './designTokens';
 
 const backdropStyle: CSSProperties = {
   position: 'fixed',
@@ -47,7 +49,7 @@ export const ModalOverlay = ({ children, onClose, maxWidth, isDirty, onFormChang
   return createPortal(
     <div style={backdropStyle} onClick={handleBackdropClick}>
       <div
-        className="bg-white dark:bg-bg-surface w-full rounded-2xl border border-slate-200 dark:border-bg-deep p-6 relative flex flex-col dark-scrollbar"
+        className="bg-white dark:bg-bg-surface w-full rounded-2xl border border-slate-200 dark:border-white/10 p-6 relative flex flex-col dark-scrollbar"
         style={{ maxHeight: '90vh', overflowY: 'auto', maxWidth: maxWidth ?? '32rem' }}
         onClick={e => e.stopPropagation()}
         onChangeCapture={onFormChange}
@@ -70,25 +72,44 @@ export const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confi
   if (!isOpen) return null;
   return (
     <ModalOverlay onClose={onClose}>
-      <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">{title}</h2>
+      <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-gray-100 mb-4">{title}</h2>
       <p className="text-slate-600 dark:text-gray-400 leading-relaxed mb-6">{message}</p>
       <div className="flex gap-3 justify-end">
-        <button
-          className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-gray-300 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors cursor-pointer border-0"
-          onClick={onClose}
-        >
+        <button className={btnGhost} onClick={onClose}>
           Cancelar
         </button>
-        <button
-          className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand-orange cursor-pointer border-0"
-          onClick={onConfirm}
-        >
+        <button className={btnPrimary} onClick={onConfirm}>
           {confirmLabel}
         </button>
       </div>
     </ModalOverlay>
   );
 };
+
+// Empty state visual estándar — reemplaza los huecos negros/textos sueltos
+// cuando una tabla o listado no tiene datos que mostrar. `icon` acepta
+// cualquier ícono de lucide-react (por defecto Inbox); `action` es opcional
+// (ej. "Limpiar filtros" o "Crear el primero").
+export const EmptyState = ({
+  icon: Icon = Inbox, title, description, action, className = '',
+}: {
+  icon?: React.ComponentType<{ size?: number | string; className?: string }>;
+  title: string;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
+  className?: string;
+}) => (
+  <div className={`flex flex-col items-center justify-center text-center py-14 px-6 ${className}`}>
+    <div className={emptyIconWrapCls}>
+      <Icon size={24} />
+    </div>
+    <p className="text-sm font-semibold text-slate-700 dark:text-gray-300">{title}</p>
+    {description && (
+      <p className="text-sm text-slate-500 dark:text-gray-500 mt-1 max-w-sm">{description}</p>
+    )}
+    {action && <div className="mt-4">{action}</div>}
+  </div>
+);
 
 export const DetailField = ({
   label, value, isFullWidth = false,
@@ -97,11 +118,11 @@ export const DetailField = ({
   value: React.ReactNode;
   isFullWidth?: boolean;
 }) => (
-  <div className={`flex flex-col gap-1 bg-slate-50 dark:bg-bg-surface p-3 rounded-lg border border-slate-200 dark:border-bg-deep ${isFullWidth ? 'col-span-2' : 'col-span-1'}`}>
+  <div className={`flex flex-col gap-1 bg-slate-50 dark:bg-white/[0.03] p-3 rounded-lg border border-slate-200 dark:border-white/[0.06] ${isFullWidth ? 'col-span-2' : 'col-span-1'}`}>
     <span className="text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wide">
       {label}
     </span>
-    <div className="text-sm font-medium text-slate-900 dark:text-white">
+    <div className="text-sm font-medium text-slate-900 dark:text-gray-100">
       {value || '-'}
     </div>
   </div>
@@ -119,15 +140,15 @@ export const RecordDetailModal = ({
   return (
     <ModalOverlay onClose={onClose}>
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-        <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-gray-700 flex-shrink-0 mb-0">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+        <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-white/[0.06] flex-shrink-0 mb-0">
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-gray-100 flex items-center gap-2">
             {title}
           </h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:text-gray-500 dark:hover:text-gray-300 text-xl transition-colors bg-transparent border-0 cursor-pointer leading-none"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:text-gray-500 dark:hover:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-all duration-200 bg-transparent border-0 cursor-pointer leading-none"
           >
-            ✕
+            <X size={18} />
           </button>
         </div>
 
@@ -135,11 +156,8 @@ export const RecordDetailModal = ({
           {children}
         </div>
 
-        <div className="border-t border-slate-200 dark:border-gray-700 mt-4 pt-3 flex-shrink-0">
-          <button
-            className="w-full px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-gray-300 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors cursor-pointer border-0"
-            onClick={onClose}
-          >
+        <div className="border-t border-slate-200 dark:border-white/[0.06] mt-4 pt-3 flex-shrink-0">
+          <button className={`${btnGhost} w-full`} onClick={onClose}>
             Cerrar Detalle
           </button>
         </div>

@@ -5,10 +5,11 @@ import { Navigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../infrastructure/api.config';
-import { ModalOverlay, ConfirmModal } from './Shared/DashboardShared';
+import { ModalOverlay, ConfirmModal, EmptyState } from './Shared/DashboardShared';
 import { guardClose, panelStyle } from './Shared/DashboardShared.utils';
+import { cardCls, inputCls as sharedInputCls, btnPrimary, btnGhost, iconBtnCls, pillCls, theadCls, thCls, tdCls, trCls } from './Shared/designTokens';
 import type { GymDto, GymScheduleDto, UserDto, CheckinDto, ScheduleEntry } from './Shared/DashboardTypes';
-import { Edit, Trash2, Building2, Search, X } from 'lucide-react';
+import { Edit, Trash2, Building2, Search, X, Info, ChevronDown } from 'lucide-react';
 
 const DESC_MAX = 180;
 const NAME_MAX = 100;
@@ -83,12 +84,12 @@ const MarcaModal = ({ isOpen, onClose, marcaToEdit, onSave, existingGyms = [] }:
   const descNear    = descLen >= DESC_MAX * 0.85;
 
   const inputCls = (err?: string) =>
-    `w-full bg-slate-50 dark:bg-[#151521] border ${err ? 'border-red-500' : 'border-slate-200 dark:border-gray-700'} text-slate-900 dark:text-white rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] transition-colors`;
+    `${sharedInputCls} ${err ? '!border-red-500 focus:!border-red-500 focus:!ring-red-500/20' : ''}`;
   const labelCls = "text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wide";
 
   return (
     <ModalOverlay onClose={onClose} isDirty={touched} onFormChange={() => setTouched(true)}>
-      <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
+      <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-gray-100 mb-4">
         {marcaToEdit ? 'Editar Marca' : 'Nueva Marca'}
       </h2>
 
@@ -142,13 +143,11 @@ const MarcaModal = ({ isOpen, onClose, marcaToEdit, onSave, existingGyms = [] }:
         </div>
 
         {/* Botones */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-gray-800">
-          <button type="button" onClick={() => guardClose(touched, onClose)}
-            className="px-4 py-2 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-bg-deep rounded-lg transition-colors font-medium border-0 cursor-pointer bg-transparent">
+        <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-white/[0.06]">
+          <button type="button" onClick={() => guardClose(touched, onClose)} className={btnGhost}>
             Cancelar
           </button>
-          <button type="submit"
-            className="px-4 py-2 bg-brand-celeste text-black font-bold rounded-lg border-0 cursor-pointer">
+          <button type="submit" className={btnPrimary}>
             {marcaToEdit ? 'Actualizar' : 'Crear'} Marca
           </button>
         </div>
@@ -270,124 +269,118 @@ export const SedesView = () => {
 
   return (
     <section style={panelStyle} className="glass-panel">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gestión de Marcas</h1>
-      <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
-        {(user?.level ?? 0) >= 10
-          ? 'Administra las marcas o franquicias del grupo. Cada marca puede tener múltiples sucursales (locales físicos).'
-          : 'Solo los administradores pueden gestionar las marcas del sistema.'}
-      </p>
-
-      <div className="flex flex-wrap justify-between items-center gap-3 mt-4 mb-4">
-        <div style={{ color: '#8E8E93', fontSize: '0.9rem' }}>
-          {loading ? 'Cargando marcas...' : `Total de marcas: ${gyms.length}`}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-gray-100">Gestión de Marcas</h1>
+          <p className="text-sm text-slate-500 dark:text-gray-500 mt-1">
+            {(user?.level ?? 0) >= 10
+              ? 'Administra las marcas o franquicias del grupo. Cada marca puede tener múltiples sucursales (locales físicos).'
+              : 'Solo los administradores pueden gestionar las marcas del sistema.'}
+          </p>
         </div>
         {(user?.level ?? 0) >= 10 && (
-          <button
-            onClick={handleCreateSede}
-            className="bg-brand-orange text-white font-semibold px-4 py-2 rounded-lg border-0 cursor-pointer whitespace-nowrap"
-          >
+          <button onClick={handleCreateSede} className={`${btnPrimary} whitespace-nowrap`}>
             Nueva Marca
           </button>
         )}
       </div>
-      {error && <div style={{ marginTop: '0.75rem', color: '#FF5E00' }}>{error}</div>}
+
+      <p className="text-sm text-slate-500 dark:text-gray-500 mt-4 mb-1">
+        {loading ? 'Cargando marcas...' : `Total de marcas: ${gyms.length}`}
+      </p>
+      {error && <div className="mt-2 text-sm text-red-400">{error}</div>}
 
       {/* ── Barra de filtros ── */}
       {!loading && !error && gyms.length > 0 && (
-        <div className="flex flex-col md:flex-row flex-wrap gap-3 items-center mb-6">
+        <div className={`${cardCls} p-4 mt-4 mb-5 flex flex-col md:flex-row flex-wrap gap-3 items-center`}>
           <div className="relative flex-1" style={{ minWidth: '180px' }}>
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 pointer-events-none" />
             <input
               value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Buscar marca por nombre..."
-              className="w-full bg-white dark:bg-bg-deep border border-gray-300 dark:border-gray-700 text-slate-900 dark:text-gray-100 rounded-md pl-9 pr-4 py-2 text-sm focus:outline-none placeholder:text-slate-400 dark:placeholder:text-gray-500"
+              aria-label="Buscar marca por nombre"
+              className={`${sharedInputCls} pl-9`}
             />
           </div>
-          <div style={{ position: 'relative' }}>
+          <div className="relative">
             <select value={sortOrder} onChange={e => setSortOrder(e.target.value as any)}
-              className="bg-white dark:bg-bg-surface text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-md py-2 pl-3 pr-8 text-sm cursor-pointer appearance-none focus:outline-none">
+              aria-label="Ordenar"
+              className={`${sharedInputCls} pr-8 cursor-pointer appearance-none`}>
               <option value="az"     >Nombre A → Z</option>
               <option value="za"     >Nombre Z → A</option>
               <option value="id_asc" >ID ↑</option>
               <option value="id_desc">ID ↓</option>
             </select>
-            <span style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#8E8E93', fontSize: '0.7rem' }}>▼</span>
+            <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-gray-500" />
           </div>
           {(search || sortOrder !== 'az') && (
-            <button onClick={() => { setSearch(''); setSortOrder('az'); }}
-              style={{ background: 'none', color: '#8E8E93', border: '1px solid #3A3A3C', borderRadius: '8px', padding: '0.45rem 0.85rem', cursor: 'pointer', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+            <button onClick={() => { setSearch(''); setSortOrder('az'); }} className={`${btnGhost} inline-flex items-center gap-1.5`}>
               <X size={12} />Limpiar
             </button>
           )}
         </div>
       )}
       {!loading && !error && gyms.length > 0 && (
-        <div style={{ color: '#8E8E93', fontSize: '0.8rem', margin: '0.5rem 0' }}>
+        <div className="text-xs text-slate-500 dark:text-gray-500 mb-2">
           {filteredGyms.length === gyms.length ? `${gyms.length} marcas` : `${filteredGyms.length} de ${gyms.length} marcas`}
         </div>
       )}
 
-      {!loading && !error && (
-        <div className="bg-white dark:bg-bg-surface border border-gray-200 dark:border-bg-deep rounded-xl overflow-hidden mt-4">
+      {!loading && !error && filteredGyms.length === 0 && (
+        <div className={cardCls}>
+          <EmptyState
+            icon={Building2}
+            title={search ? 'Sin resultados para los filtros aplicados' : 'No hay marcas registradas'}
+            description={search ? 'Prueba con otro término de búsqueda.' : 'Crea la primera marca con el botón de arriba.'}
+          />
+        </div>
+      )}
+
+      {!loading && !error && filteredGyms.length > 0 && (
+        <div className={`overflow-hidden mt-4 ${cardCls}`}>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse" style={{ minWidth: '400px' }}>
-            <thead className="bg-gray-50 dark:bg-bg-deep border-b border-gray-200 dark:border-bg-deep text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">
+          <table className="w-full border-collapse" style={{ minWidth: '400px', tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '62%' }} />
+              <col style={{ width: '26%' }} />
+            </colgroup>
+            <thead className={theadCls}>
               <tr>
-                <th style={{ textAlign: 'left', padding: '0.6rem' }}>ID</th>
-                <th style={{ textAlign: 'left', padding: '0.6rem' }}>Nombre de la Marca</th>
-                <th style={{ textAlign: 'center', padding: '0.6rem' }}>Acciones</th>
+                <th className={`${thCls} text-left`}>ID</th>
+                <th className={`${thCls} text-left`}>Nombre de la Marca</th>
+                <th className={`${thCls} text-center`}>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filteredGyms.length === 0 ? (
-                <tr><td colSpan={3} className="px-4 py-8 text-center text-slate-400 dark:text-gray-500">Sin resultados para los filtros aplicados.</td></tr>
-              ) : filteredGyms.map((g) => (
-                <tr key={g.id} className="border-b border-slate-100 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-bg-deep transition-colors text-slate-700 dark:text-gray-300 text-sm">
-                  <td style={{ padding: '0.6rem' }}>{g.id}</td>
-                  <td style={{ padding: '0.6rem' }}>
-                    <span style={{
-                      background: '#38BDF8',
-                      color: '#000',
-                      padding: '0.2rem 0.5rem',
-                      borderRadius: '4px',
-                      fontSize: '0.9rem',
-                      fontWeight: 600,
-                    }}>
-                      {g.name}
-                    </span>
+              {filteredGyms.map((g) => (
+                <tr key={g.id} className={trCls}>
+                  <td className={`${tdCls} text-slate-500 dark:text-gray-500`}>{g.id}</td>
+                  <td className={tdCls}>
+                    <span className={pillCls('sky')}>{g.name}</span>
                   </td>
-                  <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+                  <td className={`${tdCls} text-center`}>
+                    <div className="flex gap-1.5 justify-center items-center">
                       <button
                         title="Ver información"
                         onClick={() => setInfoSede(g)}
-                        style={{ width: 32, height: 32, borderRadius: 8, border: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56,189,248,0.12)', color: '#38BDF8', transition: 'background 0.15s' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.26)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.12)'; }}
+                        className={`${iconBtnCls} text-sky-400 hover:bg-sky-500/15 bg-sky-500/10`}
                       >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="10"/>
-                          <line x1="12" y1="16" x2="12" y2="12"/>
-                          <line x1="12" y1="8" x2="12.01" y2="8"/>
-                        </svg>
+                        <Info size={15} />
                       </button>
 
                       {(user?.level ?? 0) >= 10 && (<>
                         <button
                           onClick={() => handleEditSede(g)}
                           title="Editar marca"
-                          style={{ width: 32, height: 32, borderRadius: 8, border: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56,189,248,0.12)', color: '#38BDF8', transition: 'background 0.15s' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.26)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.12)'; }}
+                          className={`${iconBtnCls} text-sky-400 hover:bg-sky-500/15 bg-sky-500/10`}
                         >
                           <Edit size={15} />
                         </button>
                         <button
                           onClick={() => handleDeleteSede(g)}
                           title="Eliminar marca"
-                          style={{ width: 32, height: 32, borderRadius: 8, border: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: '#6b7280', transition: 'background 0.15s, color 0.15s' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.color = '#ef4444'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6b7280'; }}
+                          className={`${iconBtnCls} text-slate-400 dark:text-gray-500 hover:bg-red-500/10 hover:text-red-400`}
                         >
                           <Trash2 size={15} />
                         </button>
@@ -423,40 +416,36 @@ export const SedesView = () => {
         <ModalOverlay onClose={() => setInfoSede(null)}>
           <div style={{ width: '100%' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <Building2 size={22} color="#38BDF8" strokeWidth={2.2} />
+            <div className="flex justify-between items-start mb-5">
+              <div className="flex items-center gap-2.5">
+                <Building2 size={22} className="text-sky-400" strokeWidth={2.2} />
                 <div>
-                  <div style={{ fontSize: '0.68rem', color: '#38BDF8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '2px' }}>
+                  <div className="text-[0.68rem] text-sky-500 dark:text-sky-400 font-bold uppercase tracking-wider mb-0.5">
                     Marca · #{infoSede.id}
                   </div>
-                  <h2 className="text-slate-900 dark:text-white" style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800 }}>{infoSede.name}</h2>
+                  <h2 className="text-slate-900 dark:text-gray-100 m-0 text-xl font-extrabold">{infoSede.name}</h2>
                 </div>
               </div>
-              <button
-                onClick={() => setInfoSede(null)}
-                style={{ background: '#8e8e93', border: 'none', color: '#fff', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', padding: '0.25rem 0.55rem', borderRadius: '6px', flexShrink: 0 }}
-              >X</button>
+              <button onClick={() => setInfoSede(null)} className={`${iconBtnCls} shrink-0 text-slate-400 dark:text-gray-500 hover:bg-slate-100 dark:hover:bg-white/5`}>
+                <X size={18} />
+              </button>
             </div>
 
             {/* Descripción */}
-            <div className="bg-slate-100 dark:bg-bg-deep border border-slate-200 dark:border-gray-700" style={{ borderRadius: '10px', padding: '1rem' }}>
-              <div style={{ fontSize: '0.68rem', color: '#8E8E93', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.5rem' }}>
+            <div className="bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] rounded-xl p-4">
+              <div className="text-[0.68rem] text-slate-500 dark:text-gray-500 font-bold uppercase tracking-wide mb-2">
                 Descripción
               </div>
               {infoSede.description ? (
-                <p className="text-slate-900 dark:text-gray-200" style={{ margin: 0, fontSize: '0.92rem', lineHeight: '1.6' }}>{infoSede.description}</p>
+                <p className="text-slate-900 dark:text-gray-200 m-0 text-sm leading-relaxed">{infoSede.description}</p>
               ) : (
-                <p className="text-slate-400 dark:text-gray-500" style={{ margin: 0, fontSize: '0.88rem', fontStyle: 'italic' }}>Sin descripción registrada.</p>
+                <p className="text-slate-400 dark:text-gray-500 m-0 text-sm italic">Sin descripción registrada.</p>
               )}
             </div>
 
             {/* Footer */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px solid #1C1C1E' }}>
-              <button
-                onClick={() => setInfoSede(null)}
-                style={{ background: '#8e8e93', border: 'none', color: '#fff', borderRadius: '8px', padding: '0.5rem 1.1rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
-              >
+            <div className="flex justify-end mt-5 pt-3 border-t border-slate-200 dark:border-white/[0.06]">
+              <button onClick={() => setInfoSede(null)} className={btnGhost}>
                 Cerrar
               </button>
             </div>

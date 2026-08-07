@@ -69,12 +69,16 @@ import { ReportPreviewScreen }      from '../resources/views/seguimiento/ReportP
 import { MisAlumnosScreen }         from '../resources/views/inicio/MisAlumnosScreen';
 import { DumbbellSpinner } from '../app/Shared/components/ui/DumbbellSpinner';
 
+// ── Membresías (GERENTE / RECEPCIONISTA) ──────────────────────────────────────
+import { MembresiasScreen } from '../resources/views/perfil/MembresiasScreen';
+
 // ── Iconos de tabs ────────────────────────────────────────────────────────────
 const TAB_ICON: Record<string, string> = {
   'Inicio':       'home',
   'Buscar':       'magnify',
   'Mis Reservas': 'calendar',
   'Auditoría':    'clipboard-text-outline',
+  'Membresía':    'credit-card-outline',
   'Seguimiento':  'chart-line',
   'Mensajes':     'message-text-outline',
   'Perfil':       'account',
@@ -213,12 +217,17 @@ const ClienteStack = () => (
 // GERENTE STACK — solo rutas de gerente; MisReservas y HistorialMetricas NO existen aquí
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 const GerenteTab = createBottomTabNavigator();
+// "Buscar" (BuscarStack) queda deshabilitado para roles administrativos
+// (nivel 4 Recepcionista y nivel 5 Gerente) — sin acceso desde el nav bar
+// ni desde ningún otro punto de la app para estos niveles. El componente
+// sigue existiendo y activo para Cliente/Staff (ClienteTabs/StaffTabs);
+// esto NO es un borrado, solo se retira su registro de este navigator.
 const GerenteTabs = () => (
   <GerenteTab.Navigator screenOptions={tabScreenOptions}>
-    <GerenteTab.Screen name="Inicio"    component={ManagerDashboard} />
-    <GerenteTab.Screen name="Buscar"    component={BuscarStack} />
-    <GerenteTab.Screen name="Auditoría" component={AuditoriaSucursalScreen} />
-    <GerenteTab.Screen name="Perfil"    component={GerentePerfilStack} />
+    <GerenteTab.Screen name="Inicio"     component={ManagerDashboard} />
+    <GerenteTab.Screen name="Auditoría"  component={AuditoriaSucursalScreen} />
+    <GerenteTab.Screen name="Membresía"  component={MembresiasScreen} />
+    <GerenteTab.Screen name="Perfil"     component={GerentePerfilStack} />
   </GerenteTab.Navigator>
 );
 

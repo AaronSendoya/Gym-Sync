@@ -147,7 +147,7 @@ export function ReportesPage() {
                 <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-500 dark:text-gray-400">
                   {cat.label}
                 </h2>
-                <div className="flex-1 h-px bg-slate-200 dark:bg-[#3A3A3C] ml-2" />
+                <div className="flex-1 h-px bg-slate-200 dark:bg-white/10 ml-2" />
               </div>
 
               {/* Cards grid */}
@@ -155,14 +155,14 @@ export function ReportesPage() {
                 {catCards.map(card => (
                   <div
                     key={card.type}
-                    className="flex flex-col rounded-xl border border-slate-200 dark:border-[#3A3A3C] bg-white dark:bg-bg-surface p-5 transition-colors hover:border-[#FF5E00]/60 dark:hover:border-[#FF5E00]/40 shadow-sm dark:shadow-none"
+                    className="flex flex-col rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-bg-surface p-5 transition-colors duration-200 hover:border-brand-orange/60 dark:hover:border-brand-orange/40"
                   >
                     {/* Icon + badge row */}
                     <div className="mb-4 flex items-start justify-between">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FF5E00]/10 text-[#FF5E00]">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-orange/10 text-brand-orange">
                         {card.icon}
                       </div>
-                      <span className="rounded-full border border-slate-200 dark:border-[#3A3A3C] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-400">
+                      <span className="rounded-full border border-slate-200 dark:border-white/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-400">
                         {card.badge}
                       </span>
                     </div>
@@ -178,7 +178,7 @@ export function ReportesPage() {
                     {/* CTA */}
                     <button
                       onClick={() => openFilter(card.type)}
-                      className="mt-5 w-full rounded-lg border border-[#FF5E00]/60 px-4 py-2.5 text-sm font-semibold text-[#FF5E00] transition-colors hover:bg-[#FF5E00]/10"
+                      className="mt-5 w-full rounded-lg border border-brand-orange/60 px-4 py-2.5 text-sm font-semibold text-brand-orange transition-colors duration-200 hover:bg-brand-orange/10"
                     >
                       Configurar Reporte
                     </button>

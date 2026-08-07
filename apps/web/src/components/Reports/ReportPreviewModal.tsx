@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { pdf } from '@react-pdf/renderer';
 import { useQueryClient } from '@tanstack/react-query';
 import { captureElementAsPng } from '../../lib/pdfExport';
+import { btnPrimary, iconBtnCls } from '../Dashboard/Shared/designTokens';
 import type { ReportFilters } from './types';
 import { ReporteAsistencia }    from './reports/ReporteAsistencia';
 import { ReporteMaquinas }      from './reports/ReporteMaquinas';
@@ -143,18 +144,18 @@ export function ReportPreviewModal({ filters, onClose }: Props) {
       style={{ backgroundColor: 'rgba(0,0,0,0.88)' }}
     >
       {/* Top bar */}
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#3A3A3C] bg-[#1C1C1E] px-6">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-bg-surface px-6">
         <div className="flex items-center gap-3">
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-[#2C2C2E] hover:text-white"
+            className={`${iconBtnCls} text-gray-400 hover:bg-white/5 hover:text-white`}
             title="Cerrar vista previa"
           >
             <X size={17} />
           </button>
-          <div className="h-5 w-px bg-[#3A3A3C]" />
+          <div className="h-5 w-px bg-white/10" />
           <span className="text-sm font-medium text-white">Vista Previa del Reporte</span>
-          <div className="h-5 w-px bg-[#3A3A3C]" />
+          <div className="h-5 w-px bg-white/10" />
           <span className="flex items-center gap-1.5 text-xs text-gray-400">
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: freshnessColor, display: 'inline-block', flexShrink: 0 }} />
             Datos {freshnessLabel}
@@ -162,7 +163,7 @@ export function ReportPreviewModal({ filters, onClose }: Props) {
           <button
             onClick={handleRefresh}
             title="Refrescar datos"
-            className="rounded p-1 text-gray-500 transition-colors hover:bg-[#2C2C2E] hover:text-white"
+            className={`${iconBtnCls} p-1 text-gray-500 hover:bg-white/5 hover:text-white`}
           >
             <RefreshCw size={13} />
           </button>
@@ -172,7 +173,7 @@ export function ReportPreviewModal({ filters, onClose }: Props) {
           <button
             onClick={handleExport}
             disabled={exporting}
-            className="flex items-center gap-2 rounded-lg bg-[#FF5E00] px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-[#e65400] disabled:cursor-not-allowed disabled:opacity-50"
+            className={`${btnPrimary} inline-flex items-center gap-2`}
           >
             {exporting ? (
               <><Loader2 size={14} className="animate-spin" /> Exportando...</>

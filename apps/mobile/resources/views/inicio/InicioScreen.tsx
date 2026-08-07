@@ -308,6 +308,14 @@ const ClientDashboard = () => {
         {/* ── Alerta de salud (banner automático) ── */}
         <AlertaBanner />
 
+        {/* ── Tu próxima actividad — lo más urgente y personal, primero ──
+            Antes vivía al fondo de la pantalla, dentro de la tarjeta de info;
+            se promueve aquí porque es el dato más time-sensitive para un
+            usuario que vuelve a abrir la app (su próxima clase en curso). */}
+        <View style={styles.nextActivityWrap}>
+          <NextReservationBanner onBuscar={() => navigation.navigate('Buscar')} />
+        </View>
+
         {/* ── Gimnasios cerca de ti ── */}
         <View style={styles.sectionHeader}>
           <View style={styles.sectionIconRow}>
@@ -404,7 +412,9 @@ const ClientDashboard = () => {
 
         {/* ══ GRUPO 1: Actividad Física (naranja) ══ */}
         <View style={styles.groupLabel}>
-          <Image source={require('../../../assets/sneakers_icon.png')} style={{ width: 30, height: 15 }} />
+          <View style={styles.groupIconWrap}>
+            <Image source={require('../../../assets/sneakers_icon.png')} style={styles.groupIconImg} resizeMode="contain" />
+          </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.groupLabelTitle, { color: '#ffffff' }]}>Actividad Física</Text>
             <Text style={styles.groupLabelSub}>Entrena y revisa lo que has hecho</Text>
@@ -455,8 +465,10 @@ const ClientDashboard = () => {
         </View>
 
         {/* ══ GRUPO 2: Tu Progreso (verde) ══ */}
-        <View style={[styles.groupLabel, { marginTop: 40 }]}>
-          <Image source={require('../../../assets/progreso_icon.png')} style={{ width: 27, height: 27 }} />
+        <View style={[styles.groupLabel, { marginTop: 28 }]}>
+          <View style={styles.groupIconWrap}>
+            <Image source={require('../../../assets/progreso_icon.png')} style={styles.groupIconImg} resizeMode="contain" />
+          </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.groupLabelTitle, { color: '#ffffff' }]}>Tu Progreso</Text>
             <Text style={styles.groupLabelSub}>Visualiza cómo estás mejorando con el tiempo</Text>
@@ -481,8 +493,10 @@ const ClientDashboard = () => {
         </TouchableOpacity>
 
         {/* ══ GRUPO 3: ¿Necesitas orientación? (celeste) ══ */}
-        <View style={[styles.groupLabel, { marginTop: 40 }]}>
-          <Image source={require('../../../assets/experto_icon.png')} style={{ width: 30, height: 30, resizeMode:"contain" }} />
+        <View style={[styles.groupLabel, { marginTop: 28 }]}>
+          <View style={styles.groupIconWrap}>
+            <Image source={require('../../../assets/experto_icon.png')} style={styles.groupIconImg} resizeMode="contain" />
+          </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.groupLabelTitle, { color: '#ffffff' }]}>¿Necesitas orientación?</Text>
             <Text style={styles.groupLabelSub}>Un asesor puede guiarte y diseñar tu plan</Text>
@@ -529,7 +543,7 @@ const ClientDashboard = () => {
             ))}
           </View>
 
-          {/* Info card — se adapta si hay reserva próxima */}
+          {/* Info card */}
           <View style={styles.infoCard}>
             <View style={styles.infoContent}>
               <MaterialCommunityIcons name="information-outline" size={20} color="#f05b22" />
@@ -538,7 +552,6 @@ const ClientDashboard = () => {
                 no pierdas de vista tu bienestar.
               </Text>
             </View>
-            <NextReservationBanner onBuscar={() => navigation.navigate('Buscar')} />
           </View>
         </View>
       </ScrollView>
@@ -595,6 +608,9 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 20,
   },
+  nextActivityWrap: {
+    paddingHorizontal: 20,
+  },
   welcomeText: {
     color: '#666',
     fontSize: 18,
@@ -621,7 +637,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginTop: 10,
+    marginTop: 28,
   },
   sectionIconRow: {
     flexDirection: 'row',
@@ -795,6 +811,19 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 6,
   },
+  // Contenedor de tamaño fijo para los íconos PNG de cada grupo — antes cada
+  // Image tenía sus propias dimensiones (30x15, 27x27, 30x30), lo que rompía
+  // la alineación vertical entre secciones. Todos ahora ocupan el mismo footprint.
+  groupIconWrap: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  groupIconImg: {
+    width: 32,
+    height: 32,
+  },
   groupLabelTitle: {
     fontSize: 17,
     fontWeight: '800',
@@ -823,7 +852,7 @@ const styles = StyleSheet.create({
   },
   onboardSection: {
     paddingHorizontal: 20,
-    marginTop: 35,
+    marginTop: 28,
   },
   galleryGrid: {
     flexDirection: 'row',

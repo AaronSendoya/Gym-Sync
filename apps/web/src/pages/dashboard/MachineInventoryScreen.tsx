@@ -4,6 +4,8 @@ import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../infrastructure/api.config';
 import { MachineFormModal } from '../../components/Dashboard/MachineFormModal';
+import { btnPrimary, iconBtnCls, cardCls } from '../../components/Dashboard/Shared/designTokens';
+import { EmptyState } from '../../components/Dashboard/Shared/DashboardShared';
 
 type Machine = {
   id: string;
@@ -16,8 +18,8 @@ type Machine = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  AVAILABLE:   { label: 'Disponible',    color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
-  MAINTENANCE: { label: 'Mantenimiento', color: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/30' },
+  AVAILABLE:   { label: 'Disponible',    color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/25' },
+  MAINTENANCE: { label: 'Mantenimiento', color: 'text-amber-400', bg: 'bg-amber-500/10',  border: 'border-amber-500/25' },
 };
 
 const CATEGORY_CONFIG: Record<string, { label: string; color: string }> = {
@@ -106,7 +108,7 @@ export const MachineInventoryScreen = () => {
           {canManage && (
             <button
               onClick={() => setModalMachine('new')}
-              className="flex items-center gap-2 px-4 py-2.5 bg-brand-orange hover:brightness-110 text-white rounded-lg text-sm font-medium transition-all"
+              className={`${btnPrimary} inline-flex items-center gap-2`}
             >
               <Plus size={16} /> Nueva Máquina
             </button>
@@ -121,11 +123,11 @@ export const MachineInventoryScreen = () => {
           </div>
           <div className="bg-white dark:bg-bg-surface border border-slate-200 dark:border-gray-800 rounded-lg px-4 py-3">
             <div className="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">Disponibles</div>
-            <div className="text-xl font-bold text-emerald-500">{stats.available}</div>
+            <div className="text-xl font-bold text-green-500 dark:text-green-400">{stats.available}</div>
           </div>
           <div className="bg-white dark:bg-bg-surface border border-slate-200 dark:border-gray-800 rounded-lg px-4 py-3">
             <div className="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider">Mantenimiento</div>
-            <div className="text-xl font-bold text-amber-500">{stats.maintenance}</div>
+            <div className="text-xl font-bold text-amber-500 dark:text-amber-400">{stats.maintenance}</div>
           </div>
         </div>
 
@@ -182,9 +184,12 @@ export const MachineInventoryScreen = () => {
           <Loader2 className="animate-spin" size={32} />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-bg-surface border border-slate-200 dark:border-gray-700 rounded-xl">
-          <Wrench className="mx-auto text-slate-300 dark:text-gray-600 mb-3" size={48} />
-          <p className="text-slate-500 dark:text-gray-400 font-medium">No se encontraron máquinas con esos filtros.</p>
+        <div className={cardCls}>
+          <EmptyState
+            icon={Wrench}
+            title="No se encontraron máquinas"
+            description="Ajusta los filtros de estado, zona o sucursal para ver otras máquinas."
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -192,12 +197,12 @@ export const MachineInventoryScreen = () => {
             const st = STATUS_CONFIG[machine.status] ?? STATUS_CONFIG.AVAILABLE;
             const cat = CATEGORY_CONFIG[machine.category ?? ''] ?? CATEGORY_CONFIG.MULTIESTACION;
             return (
-              <div key={machine.id} className="bg-white dark:bg-bg-surface border border-slate-200 dark:border-gray-800 hover:border-brand-orange/40 transition-colors rounded-xl overflow-hidden flex flex-col h-[320px] shadow-sm dark:shadow-lg">
-                <div className="h-[140px] w-full shrink-0 relative bg-slate-100 dark:bg-[#111111]">
+              <div key={machine.id} className="bg-white dark:bg-bg-surface border border-slate-200 dark:border-gray-800 hover:border-brand-orange/40 transition-colors rounded-xl overflow-hidden flex flex-col h-[320px]">
+                <div className="h-[140px] w-full shrink-0 relative bg-slate-100 dark:bg-bg-deep">
                   {machine.imageUrl ? (
                     <img src={machine.imageUrl} alt={machine.name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-[#1a1a1a] dark:to-[#0d0d0d] p-4 text-center">
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-bg-surface dark:to-bg-deep p-4 text-center">
                       <Wrench className="text-slate-300 dark:text-gray-700 mb-2" size={32} />
                       <span className="text-[10px] font-bold tracking-widest text-slate-400 dark:text-gray-500 uppercase">Sin imagen</span>
                     </div>
@@ -223,14 +228,14 @@ export const MachineInventoryScreen = () => {
                     <button
                       onClick={() => setInfoMachine(machine)}
                       title="Ver información"
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-[#2a2a2a] hover:bg-sky-500/15 text-slate-500 dark:text-gray-400 hover:text-sky-400 border border-slate-200 dark:border-gray-700 hover:border-sky-500/40 rounded-lg text-xs font-medium transition-all shrink-0"
+                      className={`${iconBtnCls} text-sky-400 hover:bg-sky-500/15 bg-sky-500/10 shrink-0`}
                     >
                       <Info size={14} />
                     </button>
                     {canManage && (
                       <button
                         onClick={() => setModalMachine(machine)}
-                        className="flex-1 flex items-center justify-center gap-1.5 bg-slate-100 dark:bg-[#2a2a2a] hover:bg-brand-orange text-slate-600 dark:text-gray-300 hover:text-white border border-slate-200 dark:border-gray-700 hover:border-brand-orange py-2 rounded-lg text-xs font-medium transition-all"
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-slate-100 dark:bg-white/5 hover:bg-brand-orange text-slate-600 dark:text-gray-300 hover:text-white border border-slate-200 dark:border-white/10 hover:border-brand-orange py-2 rounded-lg text-xs font-medium transition-all"
                       >
                         <Wrench size={13} /> Gestionar
                       </button>
@@ -266,9 +271,9 @@ const MachineInfoModal = ({ machine, onClose }: { machine: Machine; onClose: () 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white dark:bg-bg-surface border border-slate-200 dark:border-gray-700 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-bg-surface border border-slate-200 dark:border-white/10 rounded-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
         {/* Imagen */}
-        <div className="h-48 relative bg-slate-100 dark:bg-[#111]">
+        <div className="h-48 relative bg-slate-100 dark:bg-bg-deep">
           {machine.imageUrl ? (
             <img src={machine.imageUrl} alt={machine.name} className="w-full h-full object-cover" />
           ) : (

@@ -8,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { apiClient } from '../../infrastructure/api.config';
 import { DB_ROLES } from '../../config/rbac.constants';
+import { pillCls } from './Shared/designTokens';
 import type { GymDto, UserDto } from './Shared/DashboardTypes';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -351,14 +352,14 @@ const TopBranchesCard = ({
                   {(g.maxCapacity ?? 0).toLocaleString('es-ES')}
                 </td>
                 <td className="px-3 py-2.5 text-center">
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700, background: g.isActive ? 'rgba(0,229,163,0.12)' : 'rgba(99,99,102,0.12)', color: g.isActive ? '#00E5A3' : '#8E8E93', border: `1px solid ${g.isActive ? 'rgba(0,229,163,0.3)' : 'rgba(99,99,102,0.3)'}` }}>
-                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: g.isActive ? '#00E5A3' : '#8E8E93', flexShrink: 0 }} />
+                  <span className={pillCls(g.isActive ? 'green' : 'gray')}>
+                    <span className={`w-[5px] h-[5px] rounded-full shrink-0 ${g.isActive ? 'bg-green-400' : 'bg-gray-400'}`} />
                     {g.isActive ? 'Sí' : 'No'}
                   </span>
                 </td>
                 <td className="px-5 py-2.5 text-center">
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700, background: g.isOpen ? 'rgba(56,189,248,0.12)' : 'rgba(99,99,102,0.12)', color: g.isOpen ? '#38BDF8' : '#8E8E93', border: `1px solid ${g.isOpen ? 'rgba(56,189,248,0.3)' : 'rgba(99,99,102,0.3)'}` }}>
-                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: g.isOpen ? '#38BDF8' : '#8E8E93', flexShrink: 0 }} />
+                  <span className={pillCls(g.isOpen ? 'sky' : 'gray')}>
+                    <span className={`w-[5px] h-[5px] rounded-full shrink-0 ${g.isOpen ? 'bg-sky-400' : 'bg-gray-400'}`} />
                     {g.isOpen ? 'Sí' : 'No'}
                   </span>
                 </td>
@@ -511,7 +512,7 @@ export const ResumenView = () => {
           <button
             onClick={() => refetch()}
             disabled={loading}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 dark:text-text-muted bg-white dark:bg-bg-surface border border-slate-200 dark:border-bg-deep rounded-lg hover:bg-slate-50 dark:hover:bg-bg-deep disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 dark:text-gray-400 bg-white dark:bg-bg-surface border border-slate-200 dark:border-white/10 rounded-lg transition-colors duration-200 hover:border-brand-orange/40 hover:text-brand-orange disabled:opacity-50"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             Actualizar
@@ -520,7 +521,7 @@ export const ResumenView = () => {
       </div>
 
       {error && (
-        <div className="bg-red-50 dark:bg-bg-surface border border-red-200 dark:border-gray-700 text-red-600 dark:text-text-muted rounded-xl px-4 py-3 text-sm">
+        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/25 text-red-600 dark:text-red-400 rounded-xl px-4 py-3 text-sm">
           {error}
         </div>
       )}

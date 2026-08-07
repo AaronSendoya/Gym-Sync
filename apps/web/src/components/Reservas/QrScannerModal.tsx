@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useId, useCallback } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { X } from 'lucide-react';
 
 type CameraDevice = { id: string; label: string };
 import type { Reservation } from '../../infrastructure/Reservations.types';
@@ -189,7 +190,7 @@ export const QrScannerModal = ({ onClose, onScanned }: QrScannerModalProps) => {
             <h2 style={title}>Escanear Reserva</h2>
             {status === 'scanning' && <span style={liveBadge}>Escaneando...</span>}
           </div>
-          <button style={closeBtn} onClick={onClose}>✕</button>
+          <button style={closeBtn} onClick={onClose}><X size={14} /></button>
         </div>
 
         {cameras.length > 1 && (
@@ -215,7 +216,7 @@ export const QrScannerModal = ({ onClose, onScanned }: QrScannerModalProps) => {
           <div id={SCANNER_ID} style={{ width: '100%', height: '100%' }} />
           {status === 'idle' && <div style={overlayMsg}><span style={spinner} />Iniciando cámara...</div>}
           {status === 'validating' && <div style={{ ...overlayMsg, background: 'rgba(0,0,0,0.7)' }}>Validando...</div>}
-          {status === 'success' && <div style={{ ...overlayMsg, background: 'rgba(0,180,100,0.85)', color: '#fff' }}>Check-in exitoso</div>}
+          {status === 'success' && <div style={{ ...overlayMsg, background: 'rgba(0,229,163,0.85)', color: '#fff' }}>Check-in exitoso</div>}
         </div>
 
         {status === 'future-confirm' && (
@@ -261,10 +262,11 @@ const header: React.CSSProperties = {
   display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px 20px 12px',
 };
 const title: React.CSSProperties = { margin: 0, color: '#fff', fontSize: 18, fontWeight: 700 };
-const liveBadge: React.CSSProperties = { color: '#34C759', fontSize: 12, fontWeight: 600 };
+const liveBadge: React.CSSProperties = { color: '#00E5A3', fontSize: 12, fontWeight: 600 };
 const closeBtn: React.CSSProperties = {
   background: '#1C1C1E', border: '1px solid #2A2A2C', borderRadius: 8,
-  color: '#888', cursor: 'pointer', padding: '4px 10px', fontSize: 14,
+  color: '#888', cursor: 'pointer', padding: '6px 8px', fontSize: 14,
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
 };
 const camBtn: React.CSSProperties = {
   background: '#1C1C1E', border: '1px solid #2A2A2C', borderRadius: 8,

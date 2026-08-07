@@ -5,6 +5,7 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { useQueryClient } from '@tanstack/react-query';
 import { userApi } from '../users/api/user.api';
+import { navigateToMembresiasVencidas } from './navigationRef';
 
 // getExpoPushTokenAsync hangs in Expo Go (SDK 53+) — skip all remote push logic there.
 const IS_EXPO_GO =
@@ -20,6 +21,8 @@ const MANAGER_PUSH_TYPES = new Set(['NEW_RESERVATION', 'CANCEL_RESERVATION']);
 const ADVISOR_INCOMING_TYPES = new Set(['ADVISORY_REQUEST']);
 // Tipos de notificaciones de asesoría que llegan al cliente
 const ADVISORY_RESPONSE_TYPES = new Set(['ADVISORY_ACCEPTED', 'ADVISORY_REJECTED', 'ADVISORY_CANCELLED']);
+// Resumen diario de membresías vencidas (Recepcionista/Gerente, nivel 4/5)
+const MEMBERSHIP_EXPIRED_TYPES = new Set(['MEMBERSHIP_EXPIRED_DIGEST']);
 
 export function usePushNotifications() {
   const registerToken = async (): Promise<void> => {
@@ -113,6 +116,10 @@ export function usePushNotificationListeners(): void {
         queryClient.invalidateQueries({ queryKey: ['my-routines'] });
       }
 
+      if (MEMBERSHIP_EXPIRED_TYPES.has(type)) {
+        queryClient.invalidateQueries({ queryKey: ['membresias-subs'] });
+      }
+
       if (appState === 'active') {
         try {
           await Notifications.scheduleNotificationAsync({
@@ -146,6 +153,10 @@ export function usePushNotificationListeners(): void {
         queryClient.invalidateQueries({ queryKey: ['my-advisor-requests'] });
         queryClient.invalidateQueries({ queryKey: ['my-plan'] });
         queryClient.invalidateQueries({ queryKey: ['my-routines'] });
+      }
+      if (MEMBERSHIP_EXPIRED_TYPES.has(type)) {
+        queryClient.invalidateQueries({ queryKey: ['membresias-subs'] });
+        navigateToMembresiasVencidas();
       }
     });
 

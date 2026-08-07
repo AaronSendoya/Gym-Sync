@@ -3,6 +3,8 @@ import { Search, BookOpen, Filter, Plus, Loader2, Trash2, Save, X, Upload, Penci
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../infrastructure/api.config';
+import { btnPrimary, btnGhost, btnDanger, iconBtnCls, cardCls } from '../../components/Dashboard/Shared/designTokens';
+import { EmptyState } from '../../components/Dashboard/Shared/DashboardShared';
 
 const isValidYoutubeId = (id?: string | null) => !!id && /^[a-zA-Z0-9_-]{11}$/.test(id);
 const GIBBERISH_RE = /[bcdfghjklmnñpqrstvwxyz]{5,}/i;
@@ -189,16 +191,16 @@ const ExerciseModal: React.FC<{
     finally { setIsDeleting(false); }
   };
 
-  const inputClass = 'w-full bg-slate-50 dark:bg-[#0d0d0d] text-slate-900 dark:text-white border border-slate-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-orange transition-colors';
+  const inputClass = 'w-full bg-slate-50 dark:bg-bg-deep/60 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-orange transition-colors';
   const labelClass = 'text-slate-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-[#1a1a1a] border border-slate-200 dark:border-gray-700 w-full max-w-4xl rounded-xl overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-bg-surface border border-slate-200 dark:border-white/10 w-full max-w-4xl rounded-xl overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="p-4 border-b border-slate-200 dark:border-gray-700 flex justify-between items-center shrink-0">
+        <div className="p-4 border-b border-slate-200 dark:border-white/10 flex justify-between items-center shrink-0">
           <h2 className="text-slate-900 dark:text-white font-bold">{isNew ? 'Crear Ejercicio' : `Editar: ${exercise.name}`}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"><X size={20} /></button>
+          <button onClick={onClose} className={`${iconBtnCls} text-slate-500 dark:text-gray-500 hover:bg-red-500/10 hover:text-red-400`}><X size={16} /></button>
         </div>
 
         {/* Body — 2 columnas */}
@@ -297,18 +299,18 @@ const ExerciseModal: React.FC<{
               {/* Imagen */}
               <div>
                 <p className={labelClass}>Imagen del ejercicio</p>
-                <div className="h-40 w-full bg-slate-100 dark:bg-[#0d0d0d] rounded-lg mb-3 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-gray-800">
+                <div className="h-40 w-full bg-slate-100 dark:bg-bg-deep/60 rounded-lg mb-3 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-white/10">
                   {currentImageUrl
                     ? <img src={currentImageUrl} alt={form.name} className="w-full h-full object-cover" />
                     : <span className="text-slate-400 dark:text-gray-600 italic text-sm">Sin imagen</span>}
                 </div>
                 <div className="flex gap-2">
-                  <label className="flex-1 flex items-center justify-center gap-2 py-2 bg-slate-100 dark:bg-[#2a2a2a] hover:bg-brand-orange text-slate-600 dark:text-gray-300 hover:text-white border border-slate-200 dark:border-gray-700 hover:border-brand-orange rounded-lg cursor-pointer transition-all text-sm font-medium">
+                  <label className={`flex-1 inline-flex items-center justify-center gap-2 cursor-pointer ${btnGhost} hover:bg-brand-orange hover:text-white dark:hover:bg-brand-orange dark:hover:text-white`}>
                     {isUploading ? <><Loader2 size={14} className="animate-spin" /> Subiendo...</> : <><Upload size={14} /> {currentImageUrl ? 'Reemplazar' : 'Subir'}</>}
                     <input ref={fileInputRef} type="file" accept="image/*" className="hidden" disabled={isUploading} onChange={e => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0]); }} />
                   </label>
                   {currentImageUrl && (
-                    <button onClick={handleDeleteImage} className="px-3 py-2 bg-slate-100 dark:bg-[#2a2a2a] hover:bg-red-600 text-slate-500 dark:text-gray-400 hover:text-white border border-slate-200 dark:border-gray-700 hover:border-red-500 rounded-lg transition-all text-sm font-medium">
+                    <button onClick={handleDeleteImage} className={`${btnDanger} px-3 py-2`}>
                       <Trash2 size={14} />
                     </button>
                   )}
@@ -340,7 +342,7 @@ const ExerciseModal: React.FC<{
                     />
                   </div>
                 ) : (
-                  <div className="w-full h-28 mt-3 rounded-lg border-2 border-dashed border-slate-300 dark:border-gray-700 flex flex-col items-center justify-center text-slate-400 dark:text-gray-500 bg-slate-50 dark:bg-[#111111]">
+                  <div className="w-full h-28 mt-3 rounded-lg border-2 border-dashed border-slate-300 dark:border-gray-700 flex flex-col items-center justify-center text-slate-400 dark:text-gray-500 bg-slate-50 dark:bg-bg-deep/60">
                     <AlertCircle size={20} className="mb-1.5" />
                     <p className="text-xs">
                       {form.youtubeVideoId ? 'ID no válido (debe tener 11 caracteres)' : 'Introduce un ID de YouTube para ver la vista previa'}
@@ -354,23 +356,23 @@ const ExerciseModal: React.FC<{
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-200 dark:border-gray-700 flex items-center gap-3 shrink-0">
+        <div className="p-4 border-t border-slate-200 dark:border-white/10 flex items-center gap-3 shrink-0">
           {!isNew && (
             showDeleteConfirm ? (
               <div className="flex items-center gap-2">
                 <span className="text-red-400 text-xs">¿Eliminar ejercicio?</span>
-                <button onClick={handleDelete} disabled={isDeleting} className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium">{isDeleting ? 'Eliminando...' : 'Confirmar'}</button>
-                <button onClick={() => setShowDeleteConfirm(false)} className="px-3 py-1.5 bg-slate-100 dark:bg-[#2a2a2a] text-slate-500 rounded-lg text-xs font-medium">Cancelar</button>
+                <button onClick={handleDelete} disabled={isDeleting} className={btnDanger}>{isDeleting ? 'Eliminando...' : 'Confirmar'}</button>
+                <button onClick={() => setShowDeleteConfirm(false)} className={`${btnGhost} px-3 py-1.5 text-xs`}>Cancelar</button>
               </div>
             ) : (
-              <button onClick={() => setShowDeleteConfirm(true)} className="px-4 py-2.5 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg text-sm font-medium flex items-center gap-2">
+              <button onClick={() => setShowDeleteConfirm(true)} className="px-4 py-2.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg text-sm font-medium inline-flex items-center gap-2">
                 <Trash2 size={14} /> Eliminar ejercicio
               </button>
             )
           )}
           <div className="flex-1" />
-          <button onClick={onClose} className="px-4 py-2.5 text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-sm">Cancelar</button>
-          <button onClick={handleSave} disabled={isSaving} className="px-6 py-2.5 bg-brand-orange hover:brightness-110 text-white rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-50">
+          <button onClick={onClose} className={btnGhost}>Cancelar</button>
+          <button onClick={handleSave} disabled={isSaving} className={`${btnPrimary} inline-flex items-center gap-2`}>
             {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
             {isNew ? 'Crear' : 'Guardar'}
           </button>
@@ -443,8 +445,8 @@ export const ExerciseLibraryScreen = () => {
   }
 
   const selectClass = 'w-full bg-white dark:bg-bg-surface text-slate-900 dark:text-white border border-slate-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:border-brand-orange transition-colors appearance-none cursor-pointer';
-  const thClass = 'px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-500';
-  const tdClass = 'px-4 py-3 text-sm';
+  const thClass = 'px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-500';
+  const tdClass = 'px-5 py-4 text-sm';
 
   return (
     <div className="p-6 min-h-full bg-gray-100 dark:bg-bg-deep">
@@ -459,7 +461,7 @@ export const ExerciseLibraryScreen = () => {
           </div>
           <button
             onClick={() => setModalExercise('new')}
-            className="flex items-center gap-2 px-4 py-2.5 bg-brand-orange hover:brightness-110 text-white rounded-lg text-sm font-medium transition-all"
+            className={`${btnPrimary} inline-flex items-center gap-2`}
           >
             <Plus size={16} /> Nuevo Ejercicio
           </button>
@@ -512,22 +514,33 @@ export const ExerciseLibraryScreen = () => {
       {loading ? (
         <div className="flex justify-center py-20 text-brand-orange"><Loader2 className="animate-spin" size={32} /></div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-bg-surface border border-slate-200 dark:border-gray-700 rounded-xl">
-          <BookOpen className="mx-auto text-slate-300 dark:text-gray-600 mb-3" size={48} />
-          <p className="text-slate-500 dark:text-gray-400 font-medium">No se encontraron ejercicios.</p>
+        <div className={cardCls}>
+          <EmptyState
+            icon={BookOpen}
+            title="No se encontraron ejercicios"
+            description="Ajusta los filtros de músculo, tipo o dificultad para ver otros ejercicios."
+          />
         </div>
       ) : (
-        <div className="bg-white dark:bg-bg-surface border border-slate-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
+        <div className={`overflow-hidden ${cardCls}`}>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[850px]">
+            <table className="w-full min-w-[850px]" style={{ tableLayout: 'fixed' }}>
+              <colgroup>
+                <col style={{ width: '6%' }} />
+                <col style={{ width: '30%' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '20%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '14%' }} />
+              </colgroup>
               <thead>
-                <tr className="border-b border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-[#111111]">
-                  <th className={thClass} style={{ width: '50px' }}>#</th>
+                <tr className="border-b border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-bg-deep">
+                  <th className={thClass}>#</th>
                   <th className={thClass}>Ejercicio</th>
                   <th className={thClass}>Músculo Objetivo</th>
                   <th className={thClass}>Tipo / Log</th>
                   <th className={thClass}>Dificultad</th>
-                  <th className={thClass} style={{ width: '130px' }}>Acciones</th>
+                  <th className={thClass}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -537,7 +550,7 @@ export const ExerciseLibraryScreen = () => {
                   return (
                     <tr
                       key={ex.id}
-                      className={`border-b border-slate-100 dark:border-gray-800/60 hover:bg-slate-50 dark:hover:bg-[#161616] transition-colors ${!ex.isActive ? 'opacity-40' : ''}`}
+                      className={`border-b border-slate-100 dark:border-gray-800/60 hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors ${!ex.isActive ? 'opacity-40' : ''}`}
                     >
                       <td className={`${tdClass} text-slate-400 dark:text-gray-600 font-mono text-xs`}>{ex.id}</td>
                       <td className={tdClass}>
@@ -545,7 +558,7 @@ export const ExerciseLibraryScreen = () => {
                           {ex.imageUrl ? (
                             <img src={ex.imageUrl} alt="" className="w-9 h-9 rounded-lg object-cover border border-slate-200 dark:border-gray-700 shrink-0" />
                           ) : (
-                            <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-[#1a1a1a] border border-slate-200 dark:border-gray-700 flex items-center justify-center shrink-0">
+                            <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-bg-deep border border-slate-200 dark:border-gray-700 flex items-center justify-center shrink-0">
                               <BookOpen size={14} className="text-slate-300 dark:text-gray-600" />
                             </div>
                           )}
@@ -573,14 +586,14 @@ export const ExerciseLibraryScreen = () => {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => setViewingExercise(ex)}
-                            className="p-2 rounded-lg hover:bg-sky-500/10 text-slate-400 dark:text-gray-500 hover:text-sky-400 transition-colors"
+                            className={`${iconBtnCls} text-sky-400 hover:bg-sky-500/15 bg-sky-500/10`}
                             title="Ver detalle"
                           >
                             <Eye size={15} />
                           </button>
                           <button
                             onClick={() => setModalExercise(ex)}
-                            className="p-2 rounded-lg hover:bg-brand-orange/10 text-slate-400 dark:text-gray-500 hover:text-brand-orange transition-colors"
+                            className={`${iconBtnCls} text-slate-400 dark:text-gray-500 hover:bg-brand-orange/10 hover:text-brand-orange`}
                             title="Editar"
                           >
                             <Pencil size={15} />
@@ -588,7 +601,7 @@ export const ExerciseLibraryScreen = () => {
                           <button
                             onClick={() => handleQuickDelete(ex)}
                             disabled={deletingId === ex.id}
-                            className="p-2 rounded-lg hover:bg-red-500/10 text-slate-400 dark:text-gray-500 hover:text-red-400 transition-colors disabled:opacity-30"
+                            className={`${iconBtnCls} text-slate-400 dark:text-gray-500 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-30`}
                             title="Eliminar"
                           >
                             {deletingId === ex.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
@@ -610,14 +623,14 @@ export const ExerciseLibraryScreen = () => {
       {/* Detail Panel (View) */}
       {viewingExercise && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/80 backdrop-blur-sm p-4" onClick={() => setViewingExercise(null)}>
-          <div className="bg-white dark:bg-[#1a1a1a] border border-slate-200 dark:border-gray-700 w-full max-w-2xl rounded-xl overflow-hidden max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b border-slate-200 dark:border-gray-700 flex justify-between items-center shrink-0">
+          <div className="bg-white dark:bg-bg-surface border border-slate-200 dark:border-white/10 w-full max-w-2xl rounded-xl overflow-hidden max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-slate-200 dark:border-white/10 flex justify-between items-center shrink-0">
               <h2 className="text-slate-900 dark:text-white font-bold truncate pr-4">{viewingExercise.name}</h2>
               <div className="flex items-center gap-2 shrink-0">
-                <button onClick={() => { setViewingExercise(null); setModalExercise(viewingExercise); }} className="px-3 py-1.5 bg-brand-orange/10 text-brand-orange rounded-lg text-xs font-medium hover:bg-brand-orange hover:text-white transition-all flex items-center gap-1.5">
+                <button onClick={() => { setViewingExercise(null); setModalExercise(viewingExercise); }} className="px-3 py-1.5 bg-brand-orange/10 text-brand-orange rounded-lg text-xs font-medium hover:bg-brand-orange hover:text-white transition-all inline-flex items-center gap-1.5">
                   <Pencil size={12} /> Editar
                 </button>
-                <button onClick={() => setViewingExercise(null)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"><X size={20} /></button>
+                <button onClick={() => setViewingExercise(null)} className={`${iconBtnCls} text-slate-500 dark:text-gray-500 hover:bg-red-500/10 hover:text-red-400`}><X size={16} /></button>
               </div>
             </div>
             <div className="overflow-y-auto p-6">
@@ -647,7 +660,7 @@ export const ExerciseLibraryScreen = () => {
                     </div>
                     <div>
                       <p className="text-[11px] text-slate-500 dark:text-gray-500 uppercase tracking-wider font-semibold mb-1">Estado</p>
-                      <span className={`text-sm font-semibold ${viewingExercise.isActive ? 'text-emerald-400' : 'text-red-400'}`}>{viewingExercise.isActive ? 'Activo' : 'Inactivo'}</span>
+                      <span className={`text-sm font-semibold ${viewingExercise.isActive ? 'text-green-400' : 'text-red-400'}`}>{viewingExercise.isActive ? 'Activo' : 'Inactivo'}</span>
                     </div>
                   </div>
                   <div>
@@ -678,7 +691,7 @@ export const ExerciseLibraryScreen = () => {
                     </div>
                   )}
                   {!viewingExercise.imageUrl && !isValidYoutubeId(viewingExercise.youtubeVideoId) && (
-                    <div className="h-40 rounded-lg border-2 border-dashed border-slate-300 dark:border-gray-700 flex flex-col items-center justify-center text-slate-400 dark:text-gray-500 bg-slate-50 dark:bg-[#111111]">
+                    <div className="h-40 rounded-lg border-2 border-dashed border-slate-300 dark:border-gray-700 flex flex-col items-center justify-center text-slate-400 dark:text-gray-500 bg-slate-50 dark:bg-bg-deep/60">
                       <BookOpen size={24} className="mb-2" />
                       <p className="text-xs">Sin multimedia</p>
                     </div>

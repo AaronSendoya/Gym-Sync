@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, useId } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
+import { QrCode, X, ClipboardList } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ConsultarHistorialAccesosUseCase } from '@gymsync/core';
 import type { Acceso } from '@gymsync/core';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../infrastructure/api.config';
 import { AxiosAccessApiAdapter } from '../../infrastructure/AxiosAccessApi.adapter';
+import { btnPrimary, btnGhost, inputCls, pillCls, cardCls, theadCls, thCls, tdCls, trCls } from '../Dashboard/Shared/designTokens';
+import { EmptyState } from '../Dashboard/Shared/DashboardShared';
 import './AuditoriaView.css';
 import '../Reservas/QrScannerModal.css';
 
@@ -149,7 +152,7 @@ const CheckInScannerModal = ({ onClose, onSuccess }: { onClose: () => void; onSu
               <span className="dot" /> EN VIVO
             </div>
           </div>
-          <button className="qr-modal-close" onClick={onClose}>✕</button>
+          <button className="qr-modal-close" onClick={onClose}><X size={16} /></button>
         </div>
         <p className="qr-modal-subtitle">
           {preview ? 'Confirma el movimiento del personal' : 'Ubica el código QR del miembro dentro del recuadro'}
@@ -195,14 +198,14 @@ const CheckInScannerModal = ({ onClose, onSuccess }: { onClose: () => void; onSu
                   <button
                     onClick={() => void handleConfirm('IN')}
                     className="flex-1 font-bold text-sm py-2.5 px-3 rounded-lg border-0 cursor-pointer text-white"
-                    style={{ background: '#16A34A', maxWidth: 120 }}
+                    style={{ background: '#00E5A3', maxWidth: 120 }}
                   >
                     INGRESO
                   </button>
                   <button
                     onClick={() => void handleConfirm('OUT')}
                     className="flex-1 font-bold text-sm py-2.5 px-3 rounded-lg border-0 cursor-pointer text-white"
-                    style={{ background: '#DC2626', maxWidth: 120 }}
+                    style={{ background: '#ef4444', maxWidth: 120 }}
                   >
                     SALIDA
                   </button>
@@ -399,12 +402,12 @@ const AccesosPanel = () => {
   if (user && !hasValidJurisdiction) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f05b22]" />
-        <p className="text-gray-400 text-sm">Sincronizando datos de jurisdicción con el servidor...</p>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-orange" />
+        <p className="text-slate-500 dark:text-gray-400 text-sm">Sincronizando datos de jurisdicción con el servidor...</p>
         <button
           onClick={handleManualRetry}
           disabled={isRetrying}
-          className="mt-2 px-4 py-2 bg-[#111111] border border-[#2A2A2D] text-white rounded hover:bg-[#222] transition-colors text-sm disabled:opacity-50"
+          className={`mt-2 ${btnGhost} disabled:opacity-50`}
         >
           {isRetrying ? 'Conectando...' : 'Reintentar Ahora'}
         </button>
@@ -434,14 +437,9 @@ const AccesosPanel = () => {
           {(user?.level ?? 0) < 10 && (
             <button
               onClick={() => setShowScanner(true)}
-              className="bg-brand-orange text-white font-bold px-4 py-2 rounded-lg border-0 cursor-pointer inline-flex items-center gap-2 text-sm whitespace-nowrap"
+              className={`${btnPrimary} inline-flex items-center gap-2 whitespace-nowrap`}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/>
-                <rect x="19" y="14" width="2" height="2"/><rect x="14" y="19" width="2" height="2"/>
-                <rect x="19" y="19" width="2" height="2"/>
-              </svg>
+              <QrCode size={16} />
               Escanear QR
             </button>
           )}
@@ -449,7 +447,7 @@ const AccesosPanel = () => {
             <select
               value={filtroSede}
               onChange={e => setFiltroSede(e.target.value)}
-              className="bg-white dark:bg-bg-surface text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-md px-4 py-2 focus:outline-none"
+              className={inputCls}
             >
               <option value="">Todas las Marcas</option>
               {gyms.map(g => (
@@ -460,7 +458,7 @@ const AccesosPanel = () => {
           <select
             value={filtroEstado}
             onChange={e => setFiltroEstado(e.target.value)}
-            className="bg-white dark:bg-bg-surface text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-md px-4 py-2 focus:outline-none font-semibold cursor-pointer text-sm"
+            className={inputCls}
           >
             <option value="">Todos los Estados</option>
             <option value="AUTORIZADO">Autorizados</option>
@@ -472,7 +470,7 @@ const AccesosPanel = () => {
               setFiltroTiempo(e.target.value);
               if (e.target.value !== 'rango') { setFechaDesde(''); setFechaHasta(''); }
             }}
-            className="bg-white dark:bg-bg-surface text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-md px-4 py-2 focus:outline-none font-semibold cursor-pointer text-sm"
+            className={inputCls}
           >
             <option value="">Todos los Registros</option>
             <option value="hoy">Hoy</option>
@@ -481,41 +479,58 @@ const AccesosPanel = () => {
             <option value="rango">Rango personalizado</option>
           </select>
           {filtroTiempo === 'rango' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <div className="flex items-center gap-1.5 flex-wrap">
               <input
                 type="date"
                 value={fechaDesde}
                 onChange={e => setFechaDesde(e.target.value)}
                 max={fechaHasta || undefined}
-                className="bg-white dark:bg-bg-surface text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none text-sm cursor-pointer"
-                style={{ colorScheme: 'dark' }}
+                className={inputCls}
               />
-              <span style={{ color: '#888', fontSize: 13, fontWeight: 600, userSelect: 'none' }}>—</span>
+              <span className="text-slate-400 dark:text-gray-500 text-[13px] font-semibold select-none">—</span>
               <input
                 type="date"
                 value={fechaHasta}
                 onChange={e => setFechaHasta(e.target.value)}
                 min={fechaDesde || undefined}
-                className="bg-white dark:bg-bg-surface text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 focus:outline-none text-sm cursor-pointer"
-                style={{ colorScheme: 'dark' }}
+                className={inputCls}
               />
             </div>
           )}
         </div>
       </div>
 
-      <div className="bg-white dark:bg-bg-surface border border-gray-200 dark:border-bg-deep rounded-xl overflow-x-auto mt-4">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50 dark:bg-bg-deep border-b border-gray-200 dark:border-bg-deep text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">
+      {filteredAccesos.length === 0 && !loading ? (
+        <div className={`${cardCls} mt-4`}>
+          <EmptyState
+            icon={ClipboardList}
+            title="No se encontraron registros"
+            description="Ajusta los filtros de sucursal, estado o periodo para ver el historial de accesos."
+          />
+        </div>
+      ) : (
+      <div className={`overflow-x-auto mt-4 ${cardCls}`}>
+          <table className="w-full text-left border-collapse" style={{ tableLayout: 'fixed', minWidth: '980px' }}>
+            <colgroup>
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '20%' }} />
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '12%' }} />
+            </colgroup>
+            <thead className={theadCls}>
               <tr>
-                <th className="px-6 py-4">ID</th>
-                <th className="px-6 py-4">Usuario</th>
-                <th className="px-6 py-4">Sucursal</th>
-                <th className="px-6 py-4">Fecha/Hora</th>
-                <th className="px-6 py-4">Tipo</th>
-                <th className="px-6 py-4">Método</th>
-                <th className="px-6 py-4">Estado</th>
-                <th className="px-6 py-4">Detalle</th>
+                <th className={thCls}>ID</th>
+                <th className={thCls}>Usuario</th>
+                <th className={thCls}>Sucursal</th>
+                <th className={thCls}>Fecha/Hora</th>
+                <th className={thCls}>Tipo</th>
+                <th className={thCls}>Método</th>
+                <th className={thCls}>Estado</th>
+                <th className={thCls}>Detalle</th>
               </tr>
             </thead>
             <tbody>
@@ -524,19 +539,19 @@ const AccesosPanel = () => {
                 return (
                   <tr
                     key={acceso.id.value}
-                    className={`border-b border-slate-100 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-bg-deep transition-colors text-slate-700 dark:text-gray-300 text-sm${isDenied ? ' row-denied' : ''}`}
+                    className={`${trCls}${isDenied ? ' row-denied' : ''}`}
                   >
-                    <td data-label="ID" className="px-6 py-4 cell-id">...{acceso.id.value.slice(-6)}</td>
-                    <td data-label="Usuario" className="px-6 py-4">
+                    <td data-label="ID" className={`${tdCls} cell-id`}>...{acceso.id.value.slice(-6)}</td>
+                    <td data-label="Usuario" className={tdCls}>
                       <div className="flex items-center gap-3">
                         <RoleAvatar rol={acceso.userInfo.rol} nombre={acceso.userInfo.nombre} />
-                        <div className="flex-1 flex flex-col gap-0.5">
-                          <span className="font-semibold text-slate-900 dark:text-white">{acceso.userInfo.nombre}</span>
-                          <span className="text-xs text-slate-500 dark:text-gray-400">{acceso.userInfo.email}</span>
+                        <div className="flex-1 flex flex-col gap-0.5 min-w-0">
+                          <span className="font-semibold text-slate-900 dark:text-white truncate">{acceso.userInfo.nombre}</span>
+                          <span className="text-xs text-slate-500 dark:text-gray-400 truncate">{acceso.userInfo.email}</span>
                         </div>
                       </div>
                     </td>
-                    <td data-label="Sucursal" className="px-6 py-4">
+                    <td data-label="Sucursal" className={tdCls}>
                       <div className="cell-gym">
                         <span className="name">{acceso.gymInfo.nombre}</span>
                         <a
@@ -549,31 +564,25 @@ const AccesosPanel = () => {
                         </a>
                       </div>
                     </td>
-                    <td data-label="Fecha/Hora" className="px-6 py-4 cell-time">{acceso.checkInTime.toLocaleString()}</td>
-                    <td data-label="Tipo" className="px-6 py-4 whitespace-nowrap">
+                    <td data-label="Fecha/Hora" className={`${tdCls} cell-time`}>{acceso.checkInTime.toLocaleString()}</td>
+                    <td data-label="Tipo" className={`${tdCls} whitespace-nowrap`}>
                       {acceso.actionType === 'IN' ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-900/50 text-green-400 border border-green-700">
-                          INGRESO
-                        </span>
+                        <span className={pillCls('green')}>INGRESO</span>
                       ) : acceso.actionType === 'OUT' ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-900/50 text-orange-400 border border-orange-700">
-                          SALIDA
-                        </span>
+                        <span className={pillCls('amber')}>SALIDA</span>
                       ) : (
-                        <span className="text-gray-500 text-xs">--</span>
+                        <span className="text-slate-400 dark:text-gray-500 text-xs">--</span>
                       )}
                     </td>
-                    <td data-label="Método" className="px-6 py-4">
-                      <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-bg-surface text-slate-800 dark:text-text-main text-xs font-semibold">
-                        {acceso.method.tipo}
-                      </span>
+                    <td data-label="Método" className={tdCls}>
+                      <span className={pillCls('gray')}>{acceso.method.tipo}</span>
                     </td>
-                    <td data-label="Estado" className="px-6 py-4">
+                    <td data-label="Estado" className={tdCls}>
                       <span className={`badge-status ${isDenied ? 'denegado' : 'autorizado'}`}>
                         {acceso.status.estado}
                       </span>
                     </td>
-                    <td data-label="Detalle" className="px-6 py-4 cell-reason">
+                    <td data-label="Detalle" className={`${tdCls} cell-reason`}>
                       {isDenied ? acceso.status.motivoDenegacion : '-'}
                     </td>
                   </tr>
@@ -582,24 +591,19 @@ const AccesosPanel = () => {
             </tbody>
           </table>
 
-          {filteredAccesos.length === 0 && !loading && (
-            <div className="empty-state">No se encontraron registros.</div>
-          )}
-
           {hasMore && (
             <div className="flex justify-center px-4 py-6 border-t border-slate-100 dark:border-gray-800">
               <button
                 onClick={() => setPage(p => p + 1)}
                 disabled={loading}
-                className="bg-transparent text-brand-celeste border border-brand-celeste px-6 py-2 rounded-full font-semibold text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.background = 'rgba(56,189,248,0.1)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                className="bg-transparent text-sky-500 dark:text-brand-celeste border border-sky-500 dark:border-brand-celeste px-6 py-2 rounded-full font-semibold text-sm cursor-pointer transition-colors duration-200 hover:bg-sky-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Cargando...' : 'Cargar más resultados'}
               </button>
             </div>
           )}
         </div>
+      )}
     </div>
   );
 };

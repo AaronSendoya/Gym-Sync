@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../infrastructure/api.config';
 import type { ReportType, ReportFilters, GymOption, DatePreset, DateRange } from './types';
 import { today, weekStart, monthStart, last7, last30, fmtDate } from './types';
+import { btnPrimary, btnGhost, inputCls as sharedInputCls, iconBtnCls } from '../Dashboard/Shared/designTokens';
 
 interface Props {
   type: ReportType;
@@ -191,21 +192,21 @@ export function ReportFilterModal({ type, onConfirm, onClose }: Props) {
       style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="relative w-full max-w-md rounded-2xl border border-[#3A3A3C] bg-[#1C1C1E] p-6 shadow-2xl">
+      <div className="relative w-full max-w-md rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-bg-surface p-6">
 
         {/* Header */}
         <div className="mb-6 flex items-start justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[#FF5E00]">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-orange">
               Configurar Reporte
             </p>
-            <h2 className="mt-1 text-[17px] font-semibold text-white">
+            <h2 className="mt-1 text-[17px] font-semibold text-slate-900 dark:text-white">
               {REPORT_TITLES[type]}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-[#2C2C2E] hover:text-white"
+            className={`${iconBtnCls} text-slate-500 dark:text-gray-400 hover:bg-red-500/10 hover:text-red-400`}
           >
             <X size={17} />
           </button>
@@ -215,7 +216,7 @@ export function ReportFilterModal({ type, onConfirm, onClose }: Props) {
         {needsDateRange && (
           <>
             <div className="mb-4">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-500">
                 Período de reporte
               </p>
               <div className="grid grid-cols-3 gap-2">
@@ -223,10 +224,10 @@ export function ReportFilterModal({ type, onConfirm, onClose }: Props) {
                   <button
                     key={key}
                     onClick={() => setPreset(key)}
-                    className={`rounded-lg border py-2 text-xs font-medium transition-colors ${
+                    className={`rounded-lg border py-2 text-xs font-medium transition-colors duration-200 ${
                       preset === key
-                        ? 'border-[#FF5E00] bg-[#FF5E00]/10 text-[#FF5E00]'
-                        : 'border-[#3A3A3C] text-gray-400 hover:border-[#FF5E00]/40 hover:text-gray-200'
+                        ? 'border-brand-orange bg-brand-orange/10 text-brand-orange'
+                        : 'border-slate-200 dark:border-white/10 text-slate-500 dark:text-gray-400 hover:border-brand-orange/40 hover:text-slate-700 dark:hover:text-gray-200'
                     }`}
                   >
                     {label}
@@ -238,7 +239,7 @@ export function ReportFilterModal({ type, onConfirm, onClose }: Props) {
             {preset === 'personalizado' && (
               <div className="mb-4 grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                  <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-500">
                     Desde
                   </label>
                   <input
@@ -246,11 +247,11 @@ export function ReportFilterModal({ type, onConfirm, onClose }: Props) {
                     value={customFrom}
                     max={customTo || today()}
                     onChange={e => setCustomFrom(e.target.value)}
-                    className="w-full rounded-lg border border-[#3A3A3C] bg-[#2C2C2E] px-3 py-2 text-sm text-white focus:border-[#FF5E00] focus:outline-none"
+                    className={sharedInputCls}
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                  <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-500">
                     Hasta
                   </label>
                   <input
@@ -259,16 +260,16 @@ export function ReportFilterModal({ type, onConfirm, onClose }: Props) {
                     min={customFrom}
                     max={today()}
                     onChange={e => setCustomTo(e.target.value)}
-                    className="w-full rounded-lg border border-[#3A3A3C] bg-[#2C2C2E] px-3 py-2 text-sm text-white focus:border-[#FF5E00] focus:outline-none"
+                    className={sharedInputCls}
                   />
                 </div>
               </div>
             )}
 
             {preset !== 'personalizado' && (
-              <div className="mb-4 flex items-center gap-2 rounded-lg border border-[#3A3A3C] bg-[#2C2C2E] px-3 py-2.5">
-                <Calendar size={13} className="shrink-0 text-[#FF5E00]" />
-                <span className="text-sm text-gray-300">
+              <div className="mb-4 flex items-center gap-2 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-bg-deep/60 px-3 py-2.5">
+                <Calendar size={13} className="shrink-0 text-brand-orange" />
+                <span className="text-sm text-slate-700 dark:text-gray-300">
                   {fmtDate(getRange().from)}
                   {getRange().from !== getRange().to && ` — ${fmtDate(getRange().to)}`}
                 </span>
@@ -280,7 +281,7 @@ export function ReportFilterModal({ type, onConfirm, onClose }: Props) {
         {/* Top N selector */}
         {needsTopN && (
           <div className="mb-4">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-500">
               Mostrar resultados
             </p>
             <div className="grid grid-cols-4 gap-2">
@@ -288,10 +289,10 @@ export function ReportFilterModal({ type, onConfirm, onClose }: Props) {
                 <button
                   key={opt.value}
                   onClick={() => setTopN(opt.value)}
-                  className={`rounded-lg border py-2 text-xs font-medium transition-colors ${
+                  className={`rounded-lg border py-2 text-xs font-medium transition-colors duration-200 ${
                     topN === opt.value
-                      ? 'border-[#FF5E00] bg-[#FF5E00]/10 text-[#FF5E00]'
-                      : 'border-[#3A3A3C] text-gray-400 hover:border-[#FF5E00]/40 hover:text-gray-200'
+                      ? 'border-brand-orange bg-brand-orange/10 text-brand-orange'
+                      : 'border-slate-200 dark:border-white/10 text-slate-500 dark:text-gray-400 hover:border-brand-orange/40 hover:text-slate-700 dark:hover:text-gray-200'
                   }`}
                 >
                   {opt.label}
@@ -305,7 +306,7 @@ export function ReportFilterModal({ type, onConfirm, onClose }: Props) {
         {needsGymPicker && (
           <>
             <div className="mb-3">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-500">
                 Marca
               </p>
               <div className="relative">
@@ -313,7 +314,7 @@ export function ReportFilterModal({ type, onConfirm, onClose }: Props) {
                   value={selectedBrand}
                   onChange={handleBrandChange}
                   disabled={gymsLoading}
-                  className="w-full appearance-none rounded-lg border border-[#3A3A3C] bg-[#2C2C2E] px-3 py-2.5 text-sm text-white focus:border-[#FF5E00] focus:outline-none disabled:opacity-50"
+                  className={`${sharedInputCls} appearance-none disabled:opacity-50`}
                 >
                   <option value="">
                     {gymsLoading ? 'Cargando marcas...' : 'Seleccionar marca...'}
@@ -322,12 +323,12 @@ export function ReportFilterModal({ type, onConfirm, onClose }: Props) {
                     <option key={b} value={b}>{b}</option>
                   ))}
                 </select>
-                <ChevronDown size={13} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <ChevronDown size={13} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
               </div>
             </div>
 
             <div className="mb-4">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-500">
                 Sucursal
               </p>
               <div className="relative">
@@ -335,7 +336,7 @@ export function ReportFilterModal({ type, onConfirm, onClose }: Props) {
                   value={selectedGymId ?? ''}
                   onChange={handleBranchChange}
                   disabled={!selectedBrand || branchesForBrand.length === 0}
-                  className="w-full appearance-none rounded-lg border border-[#3A3A3C] bg-[#2C2C2E] px-3 py-2.5 text-sm text-white focus:border-[#FF5E00] focus:outline-none disabled:opacity-40"
+                  className={`${sharedInputCls} appearance-none disabled:opacity-40`}
                 >
                   <option value="">
                     {!selectedBrand ? 'Selecciona una marca primero' : 'Seleccionar sucursal...'}
@@ -344,24 +345,21 @@ export function ReportFilterModal({ type, onConfirm, onClose }: Props) {
                     <option key={g.id} value={g.id}>{g.name}</option>
                   ))}
                 </select>
-                <ChevronDown size={13} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <ChevronDown size={13} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
               </div>
             </div>
           </>
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 border-t border-[#3A3A3C] pt-4">
-          <button
-            onClick={onClose}
-            className="rounded-lg border border-[#3A3A3C] px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-[#2C2C2E] hover:text-white"
-          >
+        <div className="flex justify-end gap-3 border-t border-slate-200 dark:border-white/10 pt-4">
+          <button onClick={onClose} className={btnGhost}>
             Cancelar
           </button>
           <button
             onClick={handleConfirm}
             disabled={!canConfirm}
-            className="rounded-lg bg-[#FF5E00] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#e65400] disabled:cursor-not-allowed disabled:opacity-40"
+            className={btnPrimary}
           >
             Generar Vista Previa
           </button>

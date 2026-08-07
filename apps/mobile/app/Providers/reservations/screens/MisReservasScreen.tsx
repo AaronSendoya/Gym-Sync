@@ -4,6 +4,7 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import QRCode from 'react-native-qrcode-svg';
 import { Colors } from '../theme/colors';
@@ -113,6 +114,11 @@ const DynamicQRCode = ({
 type FilterStatus = '' | 'CONFIRMADA' | 'COMPLETADA' | 'CANCELADA' | 'CADUCADA';
 
 export const MisReservasScreen = () => {
+  // Esta pantalla se registra dos veces en la navegación: como tab de Cliente
+  // (sin header nativo) y como screen empujado dentro de BuscarStack para
+  // Staff/Gerente (que no tienen tab propio de reservas). canGoBack() decide
+  // si mostrar el botón de regreso, igual que en AuditoriaSucursalScreen.
+  const navigation = useNavigation<any>();
   const [qrReservation, setQrReservation] = useState<UserReservation | null>(null);
   const qrSvgRef = useRef<any>(null);
 
@@ -298,19 +304,16 @@ export const MisReservasScreen = () => {
     );
   };
 
-  if (visible.length === 0) return (
-    <SafeAreaView style={s.safe}>
-      <FilterChips />
-      <View style={s.center}>
-        <Image source={require('../../../../assets/reserve_icon.png')} style={{ width: 100, height: 100, resizeMode: 'contain' }} />
-        <Text style={s.emptyTitle}>
-          {filterStatus ? 'Sin resultados para este filtro' : 'Aún no tienes reservas activas'}
-        </Text>
-        <Text style={s.soft}>
-          {filterStatus ? 'Prueba cambiando los filtros.' : 'Ve al mapa y reserva tu primer cupo.'}
-        </Text>
-      </View>
-    </SafeAreaView>
+  const EmptyState = () => (
+    <View style={s.center}>
+      <Image source={require('../../../../assets/reserve_icon.png')} style={{ width: 100, height: 100, resizeMode: 'contain' }} />
+      <Text style={s.emptyTitle}>
+        {filterStatus ? 'Sin resultados para este filtro' : 'Aún no tienes reservas activas'}
+      </Text>
+      <Text style={s.soft}>
+        {filterStatus ? 'Prueba cambiando los filtros.' : 'Ve al mapa y reserva tu primer cupo.'}
+      </Text>
+    </View>
   );
 
   return (
@@ -370,8 +373,20 @@ export const MisReservasScreen = () => {
         </View>
       </Modal>
 
-      {hasActive && (
-        <View style={[s.topBar, { paddingHorizontal: hPad }]}>
+      {/* ── Cabecera: título + acción destructiva secundaria en la misma fila ──
+          Antes la pantalla no tenía título propio (dependía solo del label del
+          tab) y "Cancelar todo" aparecía solo, en su propia barra, como si
+          fuera la primera acción de la pantalla. */}
+      <View style={[s.headerRow, { paddingHorizontal: hPad }]}>
+        <View style={s.headerLeft}>
+          {navigation.canGoBack() && (
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} hitSlop={8}>
+              <MaterialCommunityIcons name="chevron-left" size={22} color={Colors.text} />
+            </TouchableOpacity>
+          )}
+          <Text style={s.pageTitle}>Mis Reservas</Text>
+        </View>
+        {hasActive && (
           <TouchableOpacity
             style={[s.cancelAllBtn, cancelingAll && s.disabledOpacity]}
             onPress={handleCancelAll}
@@ -387,8 +402,8 @@ export const MisReservasScreen = () => {
               </>
             )}
           </TouchableOpacity>
-        </View>
-      )}
+        )}
+      </View>
 
       {/* ── Chips de filtro ── */}
       <FilterChips />
@@ -396,7 +411,7 @@ export const MisReservasScreen = () => {
       <FlatList
         data={visible}
         keyExtractor={(item, index) => String(item?.id ?? index)}
-        contentContainerStyle={[s.scroll, { paddingHorizontal: hPad }]}
+        contentContainerStyle={[s.scroll, { paddingHorizontal: hPad }, visible.length === 0 && { flexGrow: 1 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -413,6 +428,7 @@ export const MisReservasScreen = () => {
             onShowQr={CONFIRMED.has(r?.status ?? '') ? () => setQrReservation(r) : undefined}
           />
         )}
+        ListEmptyComponent={<EmptyState />}
         onEndReached={() => {
           if (hasNextPage && !isFetchingNextPage) {
             fetchNextPage();
@@ -606,8 +622,11 @@ const s = StyleSheet.create({
   chipTxt:      { fontSize: 12, fontWeight: '600', color: '#94a3b8' },
   chipTxtActive:{ color: '#fff' },
 
-  topBar:          { paddingTop: 14, paddingBottom: 4 },
-  cancelAllBtn:    { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-end', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: Colors.danger, backgroundColor: '#1C1C1E' },
+  headerRow:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 14, paddingBottom: 4, gap: 10 },
+  headerLeft:      { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  backBtn:         { width: 34, height: 34, borderRadius: 10, backgroundColor: '#1C1C1E', alignItems: 'center', justifyContent: 'center' },
+  pageTitle:       { color: Colors.text, fontSize: 22, fontWeight: '800' },
+  cancelAllBtn:    { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: Colors.danger, backgroundColor: '#1C1C1E' },
   disabledOpacity: {},
   cancelAllTxt:    { color: Colors.danger, fontWeight: '700', fontSize: 13 },
 

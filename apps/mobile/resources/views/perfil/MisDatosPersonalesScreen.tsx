@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, Platform, Keyboard, KeyboardAvoidingView, Modal, Image, ActivityIndicator} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, Platform, Keyboard, KeyboardAvoidingView, Modal, ActivityIndicator} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -8,21 +8,10 @@ import { NumericInput } from '../../../app/Shared/components/ui/NumericInput';
 import authAxios from '../../../app/Providers/auth/authAxios';
 import { calculateIMC, getIMCCategory, calculateAge } from '../../../app/Shared/utils/healthMetrics';
 import { DumbbellSpinner } from '../../../app/Shared/components/ui/DumbbellSpinner';
+import { AVATAR_OPTIONS, DEFAULT_AVATAR_ICON, getAvatarColor } from '../../../app/Shared/constants/avatars';
 
 type ExperienceLevel = 'PRINCIPIANTE' | 'INTERMEDIO' | 'AVANZADO';
 type SavingSection   = 'basic' | 'metrics' | 'advanced' | 'medical' | null;
-
-const AVATARS = [
-  { id: '1', icon: 'face-man-profile',  image: require('../../../assets/avatarman.png')       },
-  { id: '2', icon: 'face-woman-profile', image: require('../../../assets/avatarwoman.png')    },
-  { id: '3', icon: 'robot-outline',      image: require('../../../assets/avatarrobot.png')    },
-  { id: '4', icon: 'incognito',          image: require('../../../assets/avatarincognito.png') },
-  { id: '5', icon: 'alien-outline',      image: require('../../../assets/avataralien.png')    },
-  { id: '6', icon: 'cat',               image: require('../../../assets/avatarcat.png')       },
-  { id: '7', icon: 'fire',              image: require('../../../assets/avatarfire.png')      },
-  { id: '8', icon: 'crown',             image: require('../../../assets/avatarcrown.png')     },
-  { id: '9', icon: 'star',              image: require('../../../assets/avatarstar.png')      },
-];
 
 export const MisDatosPersonalesScreen = () => {
   const navigation                              = useNavigation();
@@ -36,7 +25,7 @@ export const MisDatosPersonalesScreen = () => {
   const [favoriteSports,     setFavoriteSports]     = useState<string>(
     Array.isArray(p?.favoriteSports) ? p.favoriteSports.join(', ') : p?.favoriteSports || ''
   );
-  const [selectedAvatar,     setSelectedAvatar]     = useState<string>(p?.avatarIcon || 'face-man-profile');
+  const [selectedAvatar,     setSelectedAvatar]     = useState<string>(p?.avatarUrl || p?.avatarIcon || DEFAULT_AVATAR_ICON);
   const [medicalConditions,  setMedicalConditions]  = useState<string>(p?.medicalConditions || '');
 
   const pm = (p?.physicalMetrics ?? p) as any;
@@ -83,7 +72,7 @@ export const MisDatosPersonalesScreen = () => {
     const metrics: any = prof?.physicalMetrics ?? {};
     setUsername(prof.username || (user as any)?.email?.split('@')[0] || '');
     setGender(prof.gender || 'Masculino');
-    setSelectedAvatar(prof.avatarIcon || 'face-man-profile');
+    setSelectedAvatar(prof.avatarUrl || prof.avatarIcon || DEFAULT_AVATAR_ICON);
     setFavoriteSports(
       Array.isArray(prof.favoriteSports) ? prof.favoriteSports.join(', ') : prof.favoriteSports || ''
     );
@@ -114,7 +103,7 @@ export const MisDatosPersonalesScreen = () => {
         const metrics: any = prof?.physicalMetrics ?? {};
         setUsername(prof.username || data?.email?.split('@')[0] || '');
         setGender(prof.gender || 'Masculino');
-        setSelectedAvatar(prof.avatarIcon || 'face-man-profile');
+        setSelectedAvatar(prof.avatarUrl || prof.avatarIcon || DEFAULT_AVATAR_ICON);
         setFavoriteSports(
           Array.isArray(prof.favoriteSports) ? prof.favoriteSports.join(', ') : prof.favoriteSports || ''
         );
@@ -347,15 +336,17 @@ export const MisDatosPersonalesScreen = () => {
               <>
                 <Text style={s.label}>Avatar</Text>
                 <View style={s.avatarGrid}>
-                  {AVATARS.map((av) => (
+                  {AVATAR_OPTIONS.map((av) => (
                     <TouchableOpacity
                       key={av.id}
                       style={[s.avatarOption, selectedAvatar === av.icon && s.avatarSelected]}
                       onPress={() => setSelectedAvatar(av.icon)}
                     >
-                      <Image
-                        source={av.image}
-                        style={{ width: 36, height: 36, resizeMode: 'contain', opacity: selectedAvatar === av.icon ? 1 : 0.5 }}
+                      <MaterialCommunityIcons
+                        name={av.icon as any}
+                        size={28}
+                        color={av.color}
+                        style={{ opacity: selectedAvatar === av.icon ? 1 : 0.55 }}
                       />
                     </TouchableOpacity>
                   ))}
@@ -364,9 +355,10 @@ export const MisDatosPersonalesScreen = () => {
             ) : (
               <View style={s.avatarReadWrap}>
                 <View style={s.avatarReadBadge}>
-                  <Image
-                    source={AVATARS.find(av => av.icon === selectedAvatar)?.image ?? AVATARS[0].image}
-                    style={{ width: 56, height: 56, resizeMode: 'contain' }}
+                  <MaterialCommunityIcons
+                    name={(selectedAvatar || DEFAULT_AVATAR_ICON) as any}
+                    size={48}
+                    color={getAvatarColor(selectedAvatar)}
                   />
                 </View>
               </View>
@@ -615,7 +607,10 @@ export const MisDatosPersonalesScreen = () => {
 
           {/* ── Condiciones Médicas ── */}
           <View style={s.section}>
-            <Text style={s.sectionTitle}>⚕️ Condiciones Médicas</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 }}>
+              <MaterialCommunityIcons name="medical-bag" size={15} color="#B0B0B0" />
+              <Text style={s.sectionTitle}>Condiciones Médicas</Text>
+            </View>
             <View style={s.field}>
               <Text style={s.label}>Lesiones o condiciones de salud</Text>
               {isEditing

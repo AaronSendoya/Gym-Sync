@@ -51,7 +51,6 @@ export const AlertasConfigScreen = () => {
         <Text style={styles.topBarTitle}>Alertas de Salud</Text>
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Alertas de Salud</Text>
         <Text style={styles.subtitle}>
           Configura notificaciones automáticas basadas en tus restricciones médicas registradas.
         </Text>
@@ -170,7 +169,7 @@ export const AlertasConfigScreen = () => {
               ).map((t, i) => (
                 <View key={i} style={styles.tipCard}>
                   <MaterialCommunityIcons name={t.icon as any} size={18} color="#ffa726" />
-                  <Text style={styles.tipText}>⚠️ {t.tip}</Text>
+                  <Text style={styles.tipText}>{t.tip}</Text>
                 </View>
               ))}
             </>
@@ -185,7 +184,7 @@ export const AlertasConfigScreen = () => {
               <MaterialCommunityIcons name="alert-circle" size={24} color="#fff" />
               <View style={{ flex: 1, marginLeft: 10 }}>
                 <Text style={styles.previewTitle}>
-                  ⚠️ Tienes {vm.alertasActivas.length} restricción(es) activa(s)
+                  Tienes {vm.alertasActivas.length} restricción(es) activa(s)
                 </Text>
                 <Text style={styles.previewSub}>
                   {vm.alertasAltas.length > 0
@@ -219,12 +218,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingBottom: 100,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,

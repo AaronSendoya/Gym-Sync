@@ -29,8 +29,8 @@ L.Icon.Default.mergeOptions({
 type EstadoFiltro = 'abierta' | 'cerrada' | 'inactiva';
 
 const ESTADO_CONFIG: Record<EstadoFiltro, { label: string; color: string }> = {
-  abierta:  { label: 'Abierta',  color: '#2ecc71' },
-  cerrada:  { label: 'Cerrada',  color: '#e74c3c' },
+  abierta:  { label: 'Abierta',  color: '#00E5A3' },
+  cerrada:  { label: 'Cerrada',  color: '#ef4444' },
   inactiva: { label: 'Inactiva', color: '#FF5E00' },
 };
 
@@ -117,8 +117,8 @@ const createCustomIcon = (color: string) =>
     popupAnchor: [0, -32],
   });
 
-const iconActiva   = createCustomIcon('#2ecc71');
-const iconCerrada  = createCustomIcon('#e74c3c');
+const iconActiva   = createCustomIcon('#00E5A3');
+const iconCerrada  = createCustomIcon('#ef4444');
 const iconInactiva = createCustomIcon('#FF5E00');
 
 // ── Paleta por Marca Principal ─────────────────────────────────────────────────
@@ -226,8 +226,8 @@ const PopupCard = ({ s, computedStatus, level }: { s: SucursalMapaDTO; computedS
               <div style={{ color: '#FF5E00', fontSize: '0.78rem', fontWeight: 700 }}>{s.machineStats.inUse}</div>
               <div style={{ color: '#555', fontSize: '0.62rem', marginTop: '1px' }}>En uso</div>
             </div>
-            <div style={{ flex: 1, background: '#e74c3c15', borderRadius: '6px', padding: '4px 0', textAlign: 'center' }}>
-              <div style={{ color: '#e74c3c', fontSize: '0.78rem', fontWeight: 700 }}>{s.machineStats.maintenance}</div>
+            <div style={{ flex: 1, background: '#ef444415', borderRadius: '6px', padding: '4px 0', textAlign: 'center' }}>
+              <div style={{ color: '#ef4444', fontSize: '0.78rem', fontWeight: 700 }}>{s.machineStats.maintenance}</div>
               <div style={{ color: '#555', fontSize: '0.62rem', marginTop: '1px' }}>Mant.</div>
             </div>
           </div>
@@ -330,7 +330,7 @@ const getStyles = (isDark: boolean) => ({
 
   statCard: {
     background: isDark ? '#1C1C1E' : '#F9FAFB',
-    border: isDark ? '1px solid #1C1C1E' : '1px solid #E5E7EB',
+    border: isDark ? '1px solid #3A3A3C' : '1px solid #E5E7EB',
     borderRadius: '10px',
     padding: '0.55rem 0.9rem',
     display: 'flex',
@@ -357,7 +357,7 @@ const getStyles = (isDark: boolean) => ({
     flexWrap: 'wrap',
     alignItems: 'center',
     background: isDark ? '#1C1C1E' : '#F9FAFB',
-    border: isDark ? '1px solid #1C1C1E' : '1px solid #E5E7EB',
+    border: isDark ? '1px solid #3A3A3C' : '1px solid #E5E7EB',
     borderRadius: '12px',
     padding: '0.75rem 1rem',
   } as React.CSSProperties,
@@ -438,7 +438,7 @@ const getStyles = (isDark: boolean) => ({
     flex: 1,
     borderRadius: '16px',
     overflow: 'hidden',
-    border: isDark ? '1px solid #1C1C1E' : '1px solid #E5E7EB',
+    border: isDark ? '1px solid #3A3A3C' : '1px solid #E5E7EB',
     minHeight: '560px',
   } as React.CSSProperties,
 
@@ -448,7 +448,7 @@ const getStyles = (isDark: boolean) => ({
     flexWrap: 'wrap',
     padding: '0.65rem 1rem',
     background: isDark ? '#1C1C1E' : '#F9FAFB',
-    border: isDark ? '1px solid #1C1C1E' : '1px solid #E5E7EB',
+    border: isDark ? '1px solid #3A3A3C' : '1px solid #E5E7EB',
     borderRadius: '10px',
     alignItems: 'center',
   } as React.CSSProperties,
@@ -728,8 +728,8 @@ export const MapaView: React.FC = () => {
 
           {/* ── Leyenda ─────────────────────────────────────────────────────── */}
           <div style={s.legend}>
-            <div style={s.legendItem}><div style={s.legendDot('#2ecc71')} /><span>Abierta</span></div>
-            <div style={s.legendItem}><div style={s.legendDot('#e74c3c')} /><span>Cerrada</span></div>
+            <div style={s.legendItem}><div style={s.legendDot('#00E5A3')} /><span>Abierta</span></div>
+            <div style={s.legendItem}><div style={s.legendDot('#ef4444')} /><span>Cerrada</span></div>
             <div style={s.legendItem}><div style={s.legendDot('#FF5E00')} /><span>Inactiva</span></div>
             {isSuperAdmin && (
               <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>

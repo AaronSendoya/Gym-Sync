@@ -12,10 +12,11 @@ import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
 L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, shadowUrl: markerShadow });
-import { ModalOverlay, ConfirmModal, RecordDetailModal, DetailField } from './Shared/DashboardShared';
+import { ModalOverlay, ConfirmModal, RecordDetailModal, DetailField, EmptyState } from './Shared/DashboardShared';
 import { guardClose, panelStyle } from './Shared/DashboardShared.utils';
+import { cardCls, inputCls as sharedInputCls, labelCls as sharedLabelCls, btnPrimary, btnGhost, iconBtnCls, pillCls, theadCls, thCls, tdCls, trCls } from './Shared/designTokens';
 import type { GymDto, GymScheduleDto } from './Shared/DashboardTypes';
-import { Eye, Edit, Trash2, Search, X, LocateFixed } from 'lucide-react';
+import { Eye, Edit, Trash2, Search, X, LocateFixed, Map as MapIcon, ChevronDown, Building2 } from 'lucide-react';
 
 
 const HOURS_24_S   = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
@@ -31,30 +32,22 @@ const TimeSelect = ({ value, onChange, disabled = false }: {
   const h = parts[0]?.padStart(2, '0') ?? '08';
   const m = parts[1]?.substring(0, 2) ?? '00';
 
-  const sel: React.CSSProperties = {
-    background: 'transparent', color: disabled ? '#636366' : '#E5E5EA',
-    border: 'none', padding: '0.5rem 0.4rem',
-    fontSize: '0.9rem', fontFamily: 'monospace', fontWeight: 600,
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    outline: 'none',
-    textAlign: 'center' as const,
-    colorScheme: 'dark',
-  };
+  const selCls = `bg-transparent border-0 px-1.5 py-2 text-sm font-mono font-semibold outline-none text-center ${
+    disabled ? 'text-slate-400 dark:text-gray-600 cursor-not-allowed' : 'text-slate-700 dark:text-gray-200 cursor-pointer'
+  }`;
 
   return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'center', gap: '1px',
-      background: disabled ? '#1C1C1E' : '#0A0A0A',
-      border: `1px solid ${disabled ? '#1C1C1E' : '#3A3A3C'}`,
-      borderRadius: '8px', overflow: 'hidden', opacity: disabled ? 0.5 : 1,
-      width: '100%',
-    }}>
-      <select value={h} onChange={e => !disabled && onChange(`${e.target.value}:${m}`)} disabled={disabled} style={sel}>
-        {HOURS_24_S.map(hh => <option key={hh} value={hh} style={{ background: '#1C1C1E', color: '#E5E5EA' }}>{hh}</option>)}
+    <div className={`inline-flex items-center gap-px rounded-lg overflow-hidden w-full border transition-opacity duration-200 ${
+      disabled
+        ? 'bg-slate-100 dark:bg-white/[0.03] border-slate-200 dark:border-white/[0.06] opacity-50'
+        : 'bg-slate-50 dark:bg-bg-deep/60 border-slate-300 dark:border-white/10'
+    }`}>
+      <select value={h} onChange={e => !disabled && onChange(`${e.target.value}:${m}`)} disabled={disabled} className={selCls}>
+        {HOURS_24_S.map(hh => <option key={hh} value={hh}>{hh}</option>)}
       </select>
-      <span style={{ color: '#8E8E93', fontWeight: 700, fontSize: '0.9rem', userSelect: 'none' }}>:</span>
-      <select value={m} onChange={e => !disabled && onChange(`${h}:${e.target.value}`)} disabled={disabled} style={sel}>
-        {MINUTES_15_S.map(mm => <option key={mm} value={mm} style={{ background: '#1C1C1E', color: '#E5E5EA' }}>{mm}</option>)}
+      <span className="text-slate-400 dark:text-gray-500 font-bold text-sm select-none">:</span>
+      <select value={m} onChange={e => !disabled && onChange(`${h}:${e.target.value}`)} disabled={disabled} className={selCls}>
+        {MINUTES_15_S.map(mm => <option key={mm} value={mm}>{mm}</option>)}
       </select>
     </div>
   );
@@ -320,12 +313,12 @@ const SucursalModal = ({ isOpen, onClose, level, sucursalToEdit, onSave, parentG
 
   if (!isOpen) return null;
 
-  const inputCls2 = "w-full bg-slate-50 dark:bg-[#151521] border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] transition-colors";
-  const labelCls2 = "block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1 mt-3";
+  const inputCls2 = sharedInputCls;
+  const labelCls2 = sharedLabelCls;
 
   return (
     <ModalOverlay onClose={onClose} isDirty={touched} onFormChange={() => setTouched(true)}>
-      <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
+      <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-gray-100 mb-4">
         {sucursalToEdit ? 'Editar Sucursal' : 'Nueva Sucursal'}
       </h2>
       <form onSubmit={handleSubmit} className="flex flex-col overflow-y-auto flex-1 min-h-0 pr-1">
@@ -337,7 +330,7 @@ const SucursalModal = ({ isOpen, onClose, level, sucursalToEdit, onSave, parentG
           </div>
           <input
             type="text"
-            className={`w-full bg-slate-50 dark:bg-[#151521] border ${errors.name ? 'border-red-500' : 'border-slate-200 dark:border-gray-700'} text-slate-900 dark:text-white rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] transition-colors`}
+            className={`${sharedInputCls} ${errors.name ? '!border-red-500' : ''}`}
             value={formData.name}
             onChange={e => { setFormData({ ...formData, name: e.target.value }); setErrors(p => ({ ...p, name: '' })); }}
             placeholder="Ej. Sucursal Centro"
@@ -379,9 +372,9 @@ const SucursalModal = ({ isOpen, onClose, level, sucursalToEdit, onSave, parentG
             <button
               type="button"
               onClick={() => setShowMap(!showMap)}
-              className="text-xs px-2 py-1 border border-brand-celeste text-brand-celeste rounded cursor-pointer bg-transparent"
+              className="text-xs px-2.5 py-1 border border-sky-500/30 text-sky-500 dark:text-sky-400 rounded-md cursor-pointer bg-sky-500/10 hover:bg-sky-500/15 transition-all duration-200 inline-flex items-center gap-1.5"
             >
-              {showMap ? 'Ocultar Mapa' : 'Ver Mapa'}
+              <MapIcon size={12} />{showMap ? 'Ocultar Mapa' : 'Ver Mapa'}
             </button>
           </div>
           {showMap && (() => {
@@ -389,7 +382,7 @@ const SucursalModal = ({ isOpen, onClose, level, sucursalToEdit, onSave, parentG
             const lng = typeof formData.longitude === 'number' && !isNaN(formData.longitude) ? formData.longitude : parseFloat(formData.longitude as any) || -63.1667;
             return (
               <>
-                <p className="text-xs text-[#38BDF8] mb-2">
+                <p className="text-xs text-sky-500 dark:text-sky-400 mb-2">
                   Desplázate y haz clic en el mapa para ubicar automáticamente la dirección y ciudad.
                 </p>
                 <div style={{ width: '100%', height: '220px', minHeight: '220px', borderRadius: '8px', overflow: 'hidden', marginBottom: '0.75rem', cursor: 'crosshair', flexShrink: 0, display: 'block' }}>
@@ -444,29 +437,29 @@ const SucursalModal = ({ isOpen, onClose, level, sucursalToEdit, onSave, parentG
               type="checkbox"
               checked={formData.isOpen}
               onChange={e => setFormData({...formData, isOpen: e.target.checked})}
-              style={{ width: '18px', height: '18px', accentColor: '#38BDF8', cursor: 'pointer' }}
+              className="w-[18px] h-[18px] cursor-pointer accent-sky-400"
             />
             <label className="text-sm font-medium text-slate-700 dark:text-gray-300 cursor-pointer">Sucursal Abierta</label>
           </div>
 
           {/* SECCIÓN DE HORARIOS */}
-          <div className="mt-4 p-4 bg-slate-50 dark:bg-bg-deep rounded-lg border border-slate-200 dark:border-bg-deep">
+          <div className={`mt-4 p-4 ${cardCls}`}>
             <h3 className="text-sm font-semibold text-slate-700 dark:text-gray-300 mt-0 mb-4">Configuración de Horarios</h3>
 
             {formData.schedules && formData.schedules.length > 0 && (
               <div className="flex flex-col gap-2 mb-4">
                 {formData.schedules.map((sch, i) => (
-                  <div key={i} className={`flex justify-between items-center p-2 px-3 rounded-md bg-gray-50 dark:bg-bg-surface ${sch.isHoliday ? 'border border-red-300 dark:border-gray-700' : ''}`}>
+                  <div key={i} className={`flex justify-between items-center p-2 px-3 rounded-md bg-slate-50 dark:bg-white/[0.03] ${sch.isHoliday ? 'border border-red-500/30' : 'border border-transparent'}`}>
                     <span className="text-sm text-slate-700 dark:text-gray-300 flex items-center gap-2">
-                      <strong className="text-brand-celeste">{sch.dayOfWeek}</strong>:
+                      <strong className="text-sky-500 dark:text-sky-400">{sch.dayOfWeek}</strong>:
                       {sch.isHoliday ? (
-                        <span className="text-xs px-2 py-0.5 rounded bg-red-100 dark:bg-bg-surface text-red-600 dark:text-text-muted font-semibold">FERIADO / CERRADO</span>
+                        <span className={pillCls('red')}>FERIADO / CERRADO</span>
                       ) : (
                         `${sch.opensAt} - ${sch.closesAt}`
                       )}
                     </span>
                     <button type="button" onClick={() => setFormData(prev => ({...prev, schedules: prev.schedules.filter((_, idx) => idx !== i)}))}
-                      className="text-red-500 text-xs cursor-pointer bg-transparent border-0 px-1">Quitar</button>
+                      className="text-red-500 text-xs cursor-pointer bg-transparent border-0 px-1 hover:text-red-400 transition-colors duration-200">Quitar</button>
                   </div>
                 ))}
               </div>
@@ -475,19 +468,17 @@ const SucursalModal = ({ isOpen, onClose, level, sucursalToEdit, onSave, parentG
             <div className="flex flex-col gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-500 dark:text-gray-500 mb-2">Selecciona el Día</label>
-                <div className="flex gap-1 flex-wrap">
+                <div className="flex gap-1.5 flex-wrap">
                   {['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO'].map(d => (
                     <button
                       key={d}
                       type="button"
                       onClick={() => setNewSchedule({...newSchedule, dayOfWeek: d})}
-                      style={{
-                        padding: '0.4rem 0.6rem', borderRadius: '20px', fontSize: '0.7rem', cursor: 'pointer',
-                        border: newSchedule.dayOfWeek === d ? '1px solid #38BDF8' : '1px solid #E5E7EB',
-                        background: newSchedule.dayOfWeek === d ? '#1C1C1E' : 'transparent',
-                        color: newSchedule.dayOfWeek === d ? '#38BDF8' : undefined,
-                        fontWeight: newSchedule.dayOfWeek === d ? 600 : 400,
-                      }}
+                      className={`px-2.5 py-1.5 rounded-full text-xs font-medium cursor-pointer border transition-all duration-200 ${
+                        newSchedule.dayOfWeek === d
+                          ? 'border-sky-500/40 bg-sky-500/10 text-sky-500 dark:text-sky-400 font-semibold'
+                          : 'border-slate-300 dark:border-white/10 text-slate-500 dark:text-gray-400 hover:border-slate-400 dark:hover:border-white/25'
+                      }`}
                     >
                       {d.substring(0,3)}
                     </button>
@@ -511,7 +502,7 @@ const SucursalModal = ({ isOpen, onClose, level, sucursalToEdit, onSave, parentG
                     checked={newSchedule.isHoliday}
                     onChange={e => setNewSchedule({...newSchedule, isHoliday: e.target.checked})}
                     onClick={e => e.stopPropagation()}
-                    style={{ width: '18px', height: '18px', accentColor: '#38BDF8', cursor: 'pointer' }}
+                    className="w-[18px] h-[18px] cursor-pointer accent-sky-400"
                   />
                   <label className="text-sm text-slate-700 dark:text-gray-300 cursor-pointer">Día Feriado / Cerrado</label>
                 </div>
@@ -544,7 +535,7 @@ const SucursalModal = ({ isOpen, onClose, level, sucursalToEdit, onSave, parentG
                     }));
                     setNewSchedule(prev => ({ ...prev, isHoliday: false }));
                   }}
-                  className="px-4 py-2 bg-brand-celeste text-black font-medium rounded-lg border-0 cursor-pointer text-sm flex items-center gap-1"
+                  className="px-4 py-2 rounded-lg border-0 cursor-pointer text-sm font-semibold flex items-center gap-1 bg-sky-500/10 text-sky-500 dark:text-sky-400 border border-sky-500/30 hover:bg-sky-500/15 transition-all duration-200"
                 >
                   + Añadir
                 </button>
@@ -552,18 +543,11 @@ const SucursalModal = ({ isOpen, onClose, level, sucursalToEdit, onSave, parentG
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100 dark:border-gray-800 flex-shrink-0">
-            <button
-              type="button"
-              onClick={() => guardClose(touched, onClose)}
-              className="px-4 py-2 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-bg-deep rounded-lg transition-colors font-medium border-0 cursor-pointer bg-transparent"
-            >
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100 dark:border-white/[0.06] flex-shrink-0">
+            <button type="button" onClick={() => guardClose(touched, onClose)} className={btnGhost}>
               Cancelar
             </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-brand-celeste text-black font-medium rounded-lg border-0 cursor-pointer"
-            >
+            <button type="submit" className={btnPrimary}>
               {sucursalToEdit ? 'Actualizar' : 'Crear'} Sucursal
             </button>
           </div>
@@ -766,141 +750,156 @@ export const SucursalesView = () => {
 
   return (
     <section style={panelStyle} className="glass-panel">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gestión de Sucursales</h1>
-      <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
-        {(user?.level ?? 0) >= 10
-          ? 'Administra las sucursales vinculadas a cada marca principal. Cada sucursal pertenece a una marca principal.'
-          : `Acceso restringido a tus sucursales (gym_id: ${user.gymId || 'N/A'}).`}
-      </p>
-
-      <div className="flex flex-wrap justify-between items-center gap-3 mt-4 mb-4">
-        <div style={{ color: '#8E8E93', fontSize: '0.9rem' }}>
-          {loading ? 'Cargando sucursales...' : `Total de sucursales: ${branches.length}`}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-gray-100">Gestión de Sucursales</h1>
+          <p className="text-sm text-slate-500 dark:text-gray-500 mt-1">
+            {(user?.level ?? 0) >= 10
+              ? 'Administra las sucursales vinculadas a cada marca principal. Cada sucursal pertenece a una marca principal.'
+              : `Acceso restringido a tus sucursales (gym_id: ${user.gymId || 'N/A'}).`}
+          </p>
         </div>
         {(user?.level ?? 0) >= 10 && (
-          <button
-            onClick={handleCreateSucursal}
-            className="bg-brand-orange text-white font-semibold px-4 py-2 rounded-lg border-0 cursor-pointer whitespace-nowrap"
-          >
+          <button onClick={handleCreateSucursal} className={`${btnPrimary} whitespace-nowrap`}>
             Nueva Sucursal
           </button>
         )}
       </div>
-      {error && <div style={{ marginTop: '0.75rem', color: '#FF5E00' }}>{error}</div>}
+
+      <p className="text-sm text-slate-500 dark:text-gray-500 mt-4 mb-1">
+        {loading ? 'Cargando sucursales...' : `Total de sucursales: ${branches.length}`}
+      </p>
+      {error && <div className="mt-2 text-sm text-red-400">{error}</div>}
 
       {/* ── Barra de filtros ── */}
       {!loading && !error && branches.length > 0 && (
-        <div className="flex flex-col md:flex-row flex-wrap gap-3 items-center mb-6">
+        <div className={`${cardCls} p-4 mt-4 mb-5 flex flex-col md:flex-row flex-wrap gap-3 items-center`}>
           <div className="relative flex-1" style={{ minWidth: '200px' }}>
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 pointer-events-none" />
             <input
               value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Buscar por nombre o dirección..."
-              className="w-full bg-white dark:bg-bg-deep border border-gray-300 dark:border-gray-700 text-slate-900 dark:text-gray-100 rounded-md pl-9 pr-4 py-2 text-sm focus:outline-none placeholder:text-slate-400 dark:placeholder:text-gray-500"
+              aria-label="Buscar por nombre o dirección"
+              className={`${sharedInputCls} pl-9`}
             />
           </div>
           {/* Marca principal */}
           {parentOptions.length > 0 && (
-            <div style={{ position: 'relative' }}>
+            <div className="relative" style={{ maxWidth: '175px' }}>
               <select value={filterParent} onChange={e => setFilterParent(e.target.value)}
-                className="bg-white dark:bg-bg-surface text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-md py-2 pl-3 pr-8 text-sm cursor-pointer appearance-none focus:outline-none" style={{ maxWidth: '175px' }}>
+                aria-label="Filtrar por marca principal"
+                className={`${sharedInputCls} pr-8 cursor-pointer appearance-none`}>
                 <option value="">Todas las marcas</option>
                 {parentOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
-              <span style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#8E8E93', fontSize: '0.7rem' }}>▼</span>
+              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-gray-500" />
             </div>
           )}
           {/* Estado */}
-          <div style={{ position: 'relative' }}>
+          <div className="relative">
             <select value={filterEstado} onChange={e => setFilterEstado(e.target.value as 'all' | 'activa' | 'inactiva' | 'abierta' | 'cerrada')}
-              className="bg-white dark:bg-bg-surface text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-md py-2 pl-3 pr-8 text-sm cursor-pointer appearance-none focus:outline-none">
+              aria-label="Filtrar por estado"
+              className={`${sharedInputCls} pr-8 cursor-pointer appearance-none`}>
               <option value="all"     >Todos los estados</option>
               <option value="activa"  >Solo Activas</option>
               <option value="inactiva">Solo Inactivas</option>
               <option value="abierta" >Solo Abiertas</option>
               <option value="cerrada" >Solo Cerradas</option>
             </select>
-            <span style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#8E8E93', fontSize: '0.7rem' }}>▼</span>
+            <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-gray-500" />
           </div>
           {/* Orden */}
-          <div style={{ position: 'relative' }}>
+          <div className="relative">
             <select value={sortOrder} onChange={e => setSortOrder(e.target.value as 'az' | 'za' | 'cap_asc' | 'cap_desc')}
-              className="bg-white dark:bg-bg-surface text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-md py-2 pl-3 pr-8 text-sm cursor-pointer appearance-none focus:outline-none">
+              aria-label="Ordenar"
+              className={`${sharedInputCls} pr-8 cursor-pointer appearance-none`}>
               <option value="az"      >Nombre A → Z</option>
               <option value="za"      >Nombre Z → A</option>
               <option value="cap_asc" >Capacidad ↑</option>
               <option value="cap_desc">Capacidad ↓</option>
             </select>
-            <span style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#8E8E93', fontSize: '0.7rem' }}>▼</span>
+            <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-gray-500" />
           </div>
           {hasFilters && (
-            <button onClick={resetFilters}
-              style={{ background: 'none', color: '#8E8E93', border: '1px solid #3A3A3C', borderRadius: '8px', padding: '0.45rem 0.85rem', cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+            <button onClick={resetFilters} className={`${btnGhost} inline-flex items-center gap-1.5`}>
               <X size={12} />Limpiar
             </button>
           )}
         </div>
       )}
       {!loading && !error && branches.length > 0 && (
-        <div style={{ color: '#8E8E93', fontSize: '0.8rem', margin: '0.5rem 0' }}>
+        <div className="text-xs text-slate-500 dark:text-gray-500 mb-2">
           {filteredSucursales.length === branches.length ? `${branches.length} sucursales` : `${filteredSucursales.length} de ${branches.length} sucursales`}
         </div>
       )}
 
-      {!loading && !error && (
-        <div className="bg-white dark:bg-bg-surface border border-gray-200 dark:border-bg-deep rounded-xl overflow-hidden mt-4">
+      {!loading && !error && filteredSucursales.length === 0 && (
+        <div className={`${cardCls} mt-4`}>
+          <EmptyState
+            icon={Building2}
+            title={branches.length === 0 ? 'No hay sucursales registradas' : 'Sin resultados para los filtros aplicados'}
+            description={branches.length === 0
+              ? 'Crea la primera sucursal con el botón de arriba.'
+              : 'Prueba a ajustar o limpiar los filtros de búsqueda.'}
+            action={hasFilters && branches.length > 0 && (
+              <button onClick={resetFilters} className={btnGhost}>Limpiar filtros</button>
+            )}
+          />
+        </div>
+      )}
+
+      {!loading && !error && filteredSucursales.length > 0 && (
+        <div className={`overflow-hidden mt-4 ${cardCls}`}>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse" style={{ minWidth: '960px' }}>
-            <thead className="bg-gray-50 dark:bg-bg-deep border-b border-gray-200 dark:border-bg-deep text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">
+          <table className="w-full border-collapse" style={{ minWidth: '960px', tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: '5%' }} />
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '26%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '16%' }} />
+            </colgroup>
+            <thead className={theadCls}>
               <tr>
-                <th style={{ textAlign: 'left', padding: '0.6rem' }}>ID</th>
-                <th style={{ textAlign: 'left', padding: '0.6rem' }}>Sucursal</th>
-                <th style={{ textAlign: 'left', padding: '0.6rem' }}>Marca Principal</th>
-                <th style={{ textAlign: 'left', padding: '0.6rem' }}>Dirección</th>
-                <th style={{ textAlign: 'left', padding: '0.6rem' }}>Capacidad</th>
-                <th style={{ textAlign: 'left', padding: '0.6rem' }}>Estado</th>
-                <th style={{ textAlign: 'center', padding: '0.6rem' }}>Acciones</th>
+                <th className={`${thCls} text-left`}>ID</th>
+                <th className={`${thCls} text-left`}>Sucursal</th>
+                <th className={`${thCls} text-left`}>Marca Principal</th>
+                <th className={`${thCls} text-left`}>Dirección</th>
+                <th className={`${thCls} text-left`}>Capacidad</th>
+                <th className={`${thCls} text-left`}>Estado</th>
+                <th className={`${thCls} text-center`}>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filteredSucursales.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400 dark:text-gray-500">
-                  {branches.length === 0 ? 'No hay sucursales registradas.' : 'Sin resultados para los filtros aplicados.'}
-                </td></tr>
-              ) : filteredSucursales.map((g) => (
-                <tr key={g.id} className="border-b border-slate-100 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-bg-deep transition-colors text-slate-700 dark:text-gray-300 text-sm">
-                  <td style={{ padding: '0.6rem' }}>{g.id}</td>
-                  <td style={{ padding: '0.6rem' }}>{g.name}</td>
-                  <td style={{ padding: '0.6rem' }}>
-                    <span style={{
-                      background: '#38BDF8',
-                      color: '#000',
-                      padding: '0.2rem 0.5rem',
-                      borderRadius: '4px',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                    }}>
+              {filteredSucursales.map((g) => (
+                <tr key={g.id} className={trCls}>
+                  <td className={`${tdCls} text-slate-500 dark:text-gray-500`}>{g.id}</td>
+                  <td className={`${tdCls} font-semibold text-slate-900 dark:text-gray-100`}>{g.name}</td>
+                  <td className={tdCls}>
+                    <span className={pillCls('sky')}>
                       {g.parent?.name || (g.parentId ? parentGyms[g.parentId] : 'Sin Marca')}
                     </span>
                   </td>
-                  <td style={{ padding: '0.6rem' }}>
+                  <td className={`${tdCls} truncate`} title={g.location?.address || g.description || undefined}>
                     {g.location?.address || g.description || '-'}
                   </td>
-                  <td style={{ padding: '0.6rem' }}>{g.maxCapacity ?? '-'}</td>
-                  <td style={{ padding: '0.6rem' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700, background: g.isActive ? 'rgba(0,229,163,0.12)' : 'rgba(255,94,0,0.12)', color: g.isActive ? '#00E5A3' : '#FF5E00', border: `1px solid ${g.isActive ? 'rgba(0,229,163,0.3)' : 'rgba(255,94,0,0.3)'}` }}>
-                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: g.isActive ? '#00E5A3' : '#FF5E00', flexShrink: 0 }} />
+                  <td className={tdCls}>{g.maxCapacity ?? '-'}</td>
+                  <td className={tdCls}>
+                    <div className="flex flex-col gap-1">
+                      <span className={pillCls(g.isActive ? 'green' : 'red')}>
+                        <span className={`w-[5px] h-[5px] rounded-full shrink-0 ${g.isActive ? 'bg-green-400' : 'bg-red-400'}`} />
                         {g.isActive ? 'Activa' : 'Inactiva'}
                       </span>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700, background: g.isOpen ? 'rgba(56,189,248,0.12)' : 'rgba(99,99,102,0.12)', color: g.isOpen ? '#38BDF8' : '#8E8E93', border: `1px solid ${g.isOpen ? 'rgba(56,189,248,0.3)' : 'rgba(99,99,102,0.3)'}` }}>
-                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: g.isOpen ? '#38BDF8' : '#8E8E93', flexShrink: 0 }} />
+                      <span className={pillCls(g.isOpen ? 'sky' : 'gray')}>
+                        <span className={`w-[5px] h-[5px] rounded-full shrink-0 ${g.isOpen ? 'bg-sky-400' : 'bg-gray-400'}`} />
                         {g.isOpen ? 'Abierta' : 'Cerrada'}
                       </span>
                     </div>
                   </td>
-                  <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+                  <td className={`${tdCls} text-center`}>
+                    <div className="flex gap-1.5 justify-center items-center">
                       <button
                         onClick={async () => {
                           try {
@@ -911,9 +910,7 @@ export const SucursalesView = () => {
                           }
                         }}
                         title="Ver detalles de la sucursal"
-                        style={{ width: 32, height: 32, borderRadius: 8, border: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56,189,248,0.12)', color: '#38BDF8', transition: 'background 0.15s' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.26)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.12)'; }}
+                        className={`${iconBtnCls} text-sky-400 hover:bg-sky-500/15 bg-sky-500/10`}
                       >
                         <Eye size={15} />
                       </button>
@@ -922,18 +919,14 @@ export const SucursalesView = () => {
                           <button
                             onClick={() => handleEditSucursal(g)}
                             title="Editar sucursal"
-                            style={{ width: 32, height: 32, borderRadius: 8, border: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56,189,248,0.12)', color: '#38BDF8', transition: 'background 0.15s' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.26)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.12)'; }}
+                            className={`${iconBtnCls} text-sky-400 hover:bg-sky-500/15 bg-sky-500/10`}
                           >
                             <Edit size={15} />
                           </button>
                           <button
                             onClick={() => handleDeleteSucursal(g)}
                             title="Eliminar sucursal"
-                            style={{ width: 32, height: 32, borderRadius: 8, border: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: '#6b7280', transition: 'background 0.15s, color 0.15s' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.color = '#ef4444'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6b7280'; }}
+                            className={`${iconBtnCls} text-slate-400 dark:text-gray-500 hover:bg-red-500/10 hover:text-red-400`}
                           >
                             <Trash2 size={15} />
                           </button>
@@ -997,21 +990,13 @@ export const SucursalesView = () => {
           } 
         />
 
-        <DetailField 
-          label="Estado Administrativo" 
-          value={
-            <span style={{ color: viewingSucursal?.isActive ? '#00E5A3' : '#FF5E00', fontWeight: 700 }}>
-              {viewingSucursal?.isActive ? '● ACTIVA' : '● INACTIVA'}
-            </span>
-          } 
+        <DetailField
+          label="Estado Administrativo"
+          value={<span className={pillCls(viewingSucursal?.isActive ? 'green' : 'red')}>{viewingSucursal?.isActive ? 'ACTIVA' : 'INACTIVA'}</span>}
         />
         <DetailField
           label="Estado de Puertas"
-          value={
-            <span style={{ color: viewingSucursal?.isOpen ? '#38BDF8' : '#8E8E93', fontWeight: 700 }}>
-              {viewingSucursal?.isOpen ? 'ABIERTA AL PÚBLICO' : 'CERRADA'}
-            </span>
-          }
+          value={<span className={pillCls(viewingSucursal?.isOpen ? 'sky' : 'gray')}>{viewingSucursal?.isOpen ? 'ABIERTA AL PÚBLICO' : 'CERRADA'}</span>}
         />
 
         <DetailField
@@ -1020,29 +1005,29 @@ export const SucursalesView = () => {
             const occ = viewingSucursal?.currentOccupancy ?? viewingSucursal?.aforoActual ?? 0;
             const max = viewingSucursal?.maxCapacity ?? 0;
             const pct = max > 0 ? Math.round((occ / max) * 100) : 0;
+            const tone = pct >= 80 ? 'text-brand-orange' : pct >= 50 ? 'text-sky-500 dark:text-sky-400' : 'text-green-500 dark:text-green-400';
             return (
-              <span style={{ fontWeight: 700, color: pct >= 80 ? '#FF5E00' : pct >= 50 ? '#38BDF8' : '#00E5A3' }}>
+              <span className={`font-bold ${tone}`}>
                 {occ} / {max} ({pct}%)
               </span>
             );
           })()}
         />
 
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', gridColumn: 'span 2', marginTop: '0.5rem', background: '#1C1C1E', padding: '0.75rem', borderRadius: '8px', border: '1px solid #1C1C1E' }}>
-          <span style={{ fontSize: '0.7rem', color: '#8E8E93', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Horarios de Atención</span>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.5rem', marginTop: '0.25rem' }}>
+        <div className="flex flex-col gap-2 col-span-2 mt-2 bg-slate-50 dark:bg-white/[0.03] p-3 rounded-lg border border-slate-200 dark:border-white/[0.06]">
+          <span className="text-xs text-slate-500 dark:text-gray-500 font-semibold uppercase tracking-wide">Horarios de Atención</span>
+          <div className="grid gap-2 mt-1" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
             {viewingSucursal?.schedules && viewingSucursal.schedules.length > 0 ? (
               sortSchedules(viewingSucursal.schedules as ScheduleFormEntry[]).map((sch, i) => (
-                <div key={i} style={{ background: '#0A0A0A', padding: '0.5rem', borderRadius: '6px', border: sch.isHoliday ? '1px solid #FF5E00' : '1px solid #1C1C1E' }}>
-                  <div style={{ color: '#38BDF8', fontWeight: 600, fontSize: '0.75rem' }}>{sch.dayOfWeek}</div>
-                  <div style={{ color: sch.isHoliday ? '#FF5E00' : '#FFFFFF', fontSize: '0.8rem', fontFamily: 'monospace', marginTop: '2px' }}>
+                <div key={i} className={`p-2 rounded-md bg-white dark:bg-bg-deep/60 border ${sch.isHoliday ? 'border-brand-orange/40' : 'border-slate-200 dark:border-white/[0.06]'}`}>
+                  <div className="text-sky-500 dark:text-sky-400 font-semibold text-xs">{sch.dayOfWeek}</div>
+                  <div className={`text-sm font-mono mt-0.5 ${sch.isHoliday ? 'text-brand-orange' : 'text-slate-900 dark:text-gray-100'}`}>
                     {sch.isHoliday ? 'FERIADO' : `${sch.opensAt?.slice(0,5)} - ${sch.closesAt?.slice(0,5)}`}
                   </div>
                 </div>
               ))
             ) : (
-              <div style={{ color: '#8E8E93', fontSize: '0.8rem', fontStyle: 'italic', gridColumn: 'span 2' }}>No hay horarios registrados para esta sucursal.</div>
+              <div className="text-sm text-slate-400 dark:text-gray-500 italic col-span-2">No hay horarios registrados para esta sucursal.</div>
             )}
           </div>
         </div>

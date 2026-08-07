@@ -4,9 +4,10 @@ import type { CSSProperties } from 'react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../infrastructure/api.config';
-import { ModalOverlay, ConfirmModal } from './Shared/DashboardShared';
+import { ModalOverlay, ConfirmModal, EmptyState } from './Shared/DashboardShared';
 import { guardClose } from './Shared/DashboardShared.utils';
-import { Eye, Edit, Trash2, Plus, X, Search, GraduationCap } from 'lucide-react';
+import { cardCls, inputCls as sharedInputCls, labelCls as sharedLabelCls, btnPrimary as sharedBtnPrimary, btnGhost, iconBtnCls, pillCls, theadCls, trCls } from './Shared/designTokens';
+import { Eye, Edit, Trash2, Plus, X, Search, GraduationCap, ChevronDown } from 'lucide-react';
 
 //Types 
 interface Activity {
@@ -70,14 +71,14 @@ const TimeSelect = ({ value, onChange }: { value: string; onChange: (v: string) 
   const h = parts[0]?.padStart(2, '0') ?? '08';
   const m = parts[1]?.substring(0, 2) ?? '00';
 
-  const selCls = "bg-slate-50 dark:bg-[#1C1C1E] text-slate-900 dark:text-[#E5E5EA] border-0 px-[0.4rem] py-[0.45rem] text-sm font-mono font-semibold cursor-pointer outline-none appearance-none text-center";
+  const selCls = "bg-transparent text-slate-900 dark:text-gray-100 border-0 px-[0.4rem] py-[0.45rem] text-sm font-mono font-semibold cursor-pointer outline-none appearance-none text-center";
 
   return (
-    <div className="inline-flex items-center gap-px bg-slate-100 dark:bg-bg-surface border border-slate-200 dark:border-bg-deep rounded-lg overflow-hidden">
+    <div className="inline-flex items-center gap-px bg-slate-50 dark:bg-bg-deep/60 border border-slate-300 dark:border-white/10 rounded-lg overflow-hidden">
       <select value={h} onChange={e => onChange(`${e.target.value}:${m}`)} className={selCls}>
         {HOURS_24.map(hh => <option key={hh} value={hh}>{hh}</option>)}
       </select>
-      <span className="text-slate-400 dark:text-[#8E8E93] font-bold text-[0.9rem] select-none">:</span>
+      <span className="text-slate-400 dark:text-gray-500 font-bold text-[0.9rem] select-none">:</span>
       <select value={m} onChange={e => onChange(`${h}:${e.target.value}`)} className={selCls}>
         {MINUTES_15.map(mm => <option key={mm} value={mm}>{mm}</option>)}
       </select>
@@ -97,37 +98,18 @@ const tableStyle: CSSProperties = {
 };
 
 const thStyle: CSSProperties = {
-  padding: '0.85rem 1rem', textAlign: 'left',
+  padding: '0.85rem 1.25rem', textAlign: 'left',
 };
 
 const tdStyle: CSSProperties = {
-  padding: '0.85rem 1rem',
+  padding: '1rem 1.25rem',
   fontSize: '0.9rem', verticalAlign: 'middle',
 };
 
-const badgeActive: CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', gap: 5,
-  padding: '3px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700,
-  background: 'rgba(0,229,163,0.12)', color: '#00E5A3', border: '1px solid rgba(0,229,163,0.3)',
-};
+const btnSecondaryCls = btnGhost;
 
-const badgeInactive: CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', gap: 5,
-  padding: '3px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700,
-  background: 'rgba(255,94,0,0.12)', color: '#FF5E00', border: '1px solid rgba(255,94,0,0.3)',
-};
-
-const btnPrimary: CSSProperties = {
-  background: '#FF5E00', color: '#fff', border: 'none',
-  borderRadius: '8px', padding: '0.5rem 1.2rem',
-  cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem',
-};
-
-const btnSecondaryCls = "px-4 py-2 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 text-sm font-medium rounded-lg border-0 cursor-pointer transition-colors";
-
-
-const inputCls = "w-full bg-slate-50 dark:bg-[#151521] border border-slate-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-celeste transition-colors box-border";
-const labelCls = "block mb-1 text-sm font-medium text-slate-700 dark:text-gray-300";
+const inputCls = sharedInputCls;
+const labelCls = sharedLabelCls;
 const fieldGap: CSSProperties = { marginBottom: '1rem' };
 
 // ─── Activity Detail Modal ────────────────────────────────────────────────────
@@ -190,12 +172,14 @@ const ActivityDetailModal = ({
         {/* Header fijo */}
         <div className="flex justify-between items-start flex-shrink-0 mb-4">
           <div>
-            <div className="text-xs font-bold uppercase tracking-[0.08em] mb-[0.2rem]" style={{ color: '#FF5E00' }}>
+            <div className="text-xs font-bold uppercase tracking-[0.08em] mb-[0.2rem] text-brand-orange">
               Ficha del Servicio · #{activity.id}
             </div>
             <h2 className="m-0 text-[1.35rem] font-bold text-slate-900 dark:text-white">{activity.name}</h2>
           </div>
-          <button onClick={onClose} style={{ background: '#8e8e93', border: 'none', color: '#fff', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', padding: '0.25rem 0.6rem', borderRadius: '6px', flexShrink: 0 }}>X</button>
+          <button onClick={onClose} className={`${iconBtnCls} text-slate-500 dark:text-gray-500 hover:bg-red-500/10 hover:text-red-400 flex-shrink-0`}>
+            <X size={16} />
+          </button>
         </div>
 
         {/* Contenido scrollable */}
@@ -204,39 +188,39 @@ const ActivityDetailModal = ({
             {field('Gimnasio / Sucursal', activity.gym?.name ?? `Gym #${activity.gymId}`)}
             {field('Duración', activity.defaultDurationMin ? `${activity.defaultDurationMin} min` : 'No definida')}
             {field('Tipo', activity.isFreeAccess
-              ? <span style={{ color: '#FF5E00', fontWeight: 700 }}>Acceso Libre</span>
-              : <span style={{ color: '#38BDF8', fontWeight: 700 }}>Con Horarios</span>
+              ? <span className="font-bold text-brand-orange">Acceso Libre</span>
+              : <span className="font-bold text-sky-400">Con Horarios</span>
             )}
             {field('Estado', activity.isActive
-              ? <span style={{ color: '#34C759', fontWeight: 700 }}>● Activa</span>
-              : <span style={{ color: '#FF3B30', fontWeight: 700 }}>● Inactiva</span>
+              ? <span className="font-bold text-[#00E5A3]">● Activa</span>
+              : <span className="font-bold text-red-400">● Inactiva</span>
             )}
             {field('Descripción', activity.description, true)}
           </div>
 
           {/* Horarios */}
           {!activity.isFreeAccess && (
-            <div style={{ borderTop: '1px solid #1C1C1E', paddingTop: '1rem' }}>
-              <div style={{ fontSize: '0.75rem', color: '#FF5E00', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.6rem' }}>
+            <div className="border-t border-slate-200 dark:border-white/10 pt-4">
+              <div className="text-xs font-bold uppercase tracking-[0.06em] mb-2.5 text-brand-orange">
                 Horarios de Clase
               </div>
               {loading ? (
-                <p style={{ color: '#8E8E93', fontSize: '0.85rem', textAlign: 'center', padding: '1rem 0' }}>Cargando horarios...</p>
+                <p className="text-sm text-center py-4 text-slate-500 dark:text-gray-500">Cargando horarios...</p>
               ) : schedules.length === 0 ? (
-                <p style={{ color: '#636366', fontSize: '0.85rem', fontStyle: 'italic', textAlign: 'center', padding: '0.5rem 0' }}>Sin horarios configurados</p>
+                <p className="text-sm italic text-center py-2 text-slate-500 dark:text-gray-500">Sin horarios configurados</p>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <div className="flex flex-col gap-1.5">
                   {schedules.map(s => (
-                    <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#1C1C1E', border: '1px solid #FF5E00', borderRadius: '8px', padding: '0.55rem 0.85rem' }}>
-                      <span style={{ color: '#FF5E00', fontWeight: 700, fontSize: '0.78rem', minWidth: '42px' }}>{DAY_LABELS[s.dayOfWeek] ?? s.dayOfWeek}</span>
-                      <span style={{ color: '#E5E5EA', fontSize: '0.87rem', flex: 1 }}>
+                    <div key={s.id} className="flex items-center gap-3 rounded-lg px-3.5 py-2.5 bg-slate-50 dark:bg-bg-deep/60 border border-brand-orange/25">
+                      <span className="font-bold text-[0.78rem] min-w-[42px] text-brand-orange">{DAY_LABELS[s.dayOfWeek] ?? s.dayOfWeek}</span>
+                      <span className="text-[0.87rem] flex-1 text-slate-700 dark:text-gray-200">
                         {s.startTime.substring(0, 5)} – {s.endTime.substring(0, 5)}
                       </span>
                       {s.maxAttendees && (
-                        <span style={{ color: '#8E8E93', fontSize: '0.75rem' }}>{s.maxAttendees} cupos</span>
+                        <span className="text-xs text-slate-500 dark:text-gray-500">{s.maxAttendees} cupos</span>
                       )}
                       {s.instructorId && (
-                        <span style={{ color: '#8E8E93', fontSize: '0.75rem', maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span className="text-xs max-w-[130px] overflow-hidden text-ellipsis whitespace-nowrap text-slate-500 dark:text-gray-500">
                           Inst. {instructorMap.get(Number(s.instructorId)) ?? s.instructor?.email ?? `#${s.instructorId}`}
                         </span>
                       )}
@@ -251,7 +235,7 @@ const ActivityDetailModal = ({
         {/* Footer fijo */}
         <div className="flex gap-2.5 mt-4 pt-3 border-t border-slate-200 dark:border-bg-deep flex-shrink-0">
           <button onClick={onClose} className={`${btnSecondaryCls} flex-1`}>Cerrar</button>
-          <button onClick={onEdit} style={{ ...btnPrimary, flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}><Edit size={14} />Editar Servicio</button>
+          <button onClick={onEdit} className={`${sharedBtnPrimary} flex-1 inline-flex items-center justify-center gap-1.5`}><Edit size={14} />Editar Servicio</button>
         </div>
       </div>
     </ModalOverlay>
@@ -648,7 +632,7 @@ const ActivityFormModal = ({
               className={`flex items-center gap-3 rounded-xl px-4 py-3 cursor-pointer select-none mb-4 border ${isActive ? 'bg-slate-50 dark:bg-bg-surface border-slate-200 dark:border-bg-deep' : 'bg-gray-100 dark:bg-bg-surface border-red-400'}`}
               onClick={() => setIsActive(v => !v)}
             >
-              <div style={{ width: '40px', height: '22px', borderRadius: '11px', background: isActive ? '#00E5A3' : '#FF3B30', position: 'relative', flexShrink: 0, transition: 'background 0.2s ease' }}>
+              <div style={{ width: '40px', height: '22px', borderRadius: '11px', background: isActive ? '#00E5A3' : '#ef4444', position: 'relative', flexShrink: 0, transition: 'background 0.2s ease' }}>
                 <div style={{ position: 'absolute', top: '3px', left: isActive ? '21px' : '3px', width: '16px', height: '16px', borderRadius: '50%', background: '#fff', transition: 'left 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.4)' }} />
               </div>
               <div>
@@ -712,7 +696,7 @@ const ActivityFormModal = ({
                       ?? s.instructor?.email;
                     return (
                       <div key={s.id} className="flex items-center gap-2.5 bg-gray-50 dark:bg-bg-surface border border-brand-orange rounded-lg px-3 py-2">
-                        <span className="font-bold text-xs font-bold min-w-[36px]" style={{ color: '#FF5E00' }}>
+                        <span className="font-bold text-xs min-w-[36px] text-brand-orange">
                           {DAY_LABELS[s.dayOfWeek] ?? s.dayOfWeek}
                         </span>
                         <span className="text-slate-700 dark:text-gray-200 text-sm flex-1">
@@ -796,7 +780,7 @@ const ActivityFormModal = ({
                 {/* Botón agregar */}
                 <div className="flex justify-end">
                   <button type="button" onClick={handleAddSchedule} disabled={addingSchedule}
-                    style={{ ...btnPrimary, padding: '0.45rem 0.9rem', fontSize: '0.82rem', opacity: addingSchedule ? 0.6 : 1 }}>
+                    className={`${sharedBtnPrimary} px-3.5 py-1.5 text-[0.82rem]`}>
                     {addingSchedule ? '...' : '+ Agregar'}
                   </button>
                 </div>
@@ -809,7 +793,7 @@ const ActivityFormModal = ({
       {/* Botones fijos al fondo */}
       <div className="flex gap-3 justify-end mt-5 pt-4 pb-1 border-t border-slate-200 dark:border-bg-deep flex-shrink-0">
         <button type="button" className={btnSecondaryCls} onClick={() => guardClose(touched, onClose)}>Cancelar</button>
-        <button type="submit" form="activity-form" style={btnPrimary} disabled={saving}>
+        <button type="submit" form="activity-form" className={sharedBtnPrimary} disabled={saving}>
           {saving ? 'Guardando...' : isEdit ? 'Guardar Cambios' : 'Crear Servicio'}
         </button>
       </div>
@@ -817,14 +801,7 @@ const ActivityFormModal = ({
   );
 };
 
-const resetBtnStyle: CSSProperties = {
-  background: 'none', color: '#8E8E93',
-  border: '1px solid #1C1C1E', borderRadius: '8px',
-  padding: '0.5rem 0.9rem', cursor: 'pointer', fontSize: '0.8rem',
-  whiteSpace: 'nowrap',
-};
-
-// ─── Select Stellar 
+// ─── Select Stellar
 const DarkSelect = ({ value, onChange, children, style }: {
   value: string;
   onChange: (v: string) => void;
@@ -833,14 +810,14 @@ const DarkSelect = ({ value, onChange, children, style }: {
 }) => (
   <div className="relative inline-flex items-center">
     <select
-      className="bg-white dark:bg-bg-surface text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-md py-2 pl-3 pr-8 text-sm cursor-pointer appearance-none focus:outline-none"
+      className={`${sharedInputCls} pr-8 cursor-pointer appearance-none`}
       style={style}
       value={value}
       onChange={e => onChange(e.target.value)}
     >
       {children}
     </select>
-    <span className="absolute right-2.5 pointer-events-none text-slate-400 dark:text-gray-500 text-xs">▼</span>
+    <ChevronDown size={14} className="absolute right-2.5 pointer-events-none text-slate-400 dark:text-gray-500" />
   </div>
 );
 
@@ -965,12 +942,12 @@ export const ActividadesView = () => {
   return (
     <section style={panelStyle}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Catálogo de Servicios</h1>
-          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Gestión de actividades disponibles en el gimnasio</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-gray-100">Catálogo de Servicios</h1>
+          <p className="text-sm text-slate-500 dark:text-gray-500 mt-1">Gestión de actividades disponibles en el gimnasio</p>
         </div>
-        <button style={{ ...btnPrimary, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }} onClick={() => setFormTarget('new')}>
+        <button className={`${sharedBtnPrimary} inline-flex items-center gap-1.5`} onClick={() => setFormTarget('new')}>
           <Plus size={15} />
           Nuevo Servicio
         </button>
@@ -1017,13 +994,13 @@ export const ActividadesView = () => {
         </DarkSelect>
 
         {hasActiveFilters && (
-          <button style={{ ...resetBtnStyle, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }} onClick={resetFilters}><X size={12} />Limpiar filtros</button>
+          <button className={`${btnGhost} inline-flex items-center gap-1.5`} onClick={resetFilters}><X size={12} />Limpiar filtros</button>
         )}
       </div>
 
       {/* Contador */}
       {!loading && (
-        <p style={{ color: '#8E8E93', fontSize: '0.8rem', marginBottom: '0.75rem' }}>
+        <p className="text-[0.8rem] mb-3 text-slate-500 dark:text-gray-500">
           {filtered.length === activities.length
             ? `${activities.length} servicio${activities.length !== 1 ? 's' : ''}`
             : `${filtered.length} de ${activities.length} servicios`}
@@ -1032,16 +1009,25 @@ export const ActividadesView = () => {
 
       {/* Table */}
       {loading ? (
-        <p style={{ color: '#8E8E93', textAlign: 'center', padding: '3rem 0' }}>Cargando servicios...</p>
+        <p className="text-center py-12 text-slate-500 dark:text-gray-500">Cargando servicios...</p>
       ) : filtered.length === 0 ? (
-        <p style={{ color: '#8E8E93', textAlign: 'center', padding: '3rem 0' }}>
-          {activities.length === 0 ? 'No hay servicios registrados aún.' : 'Sin resultados para los filtros aplicados.'}
-        </p>
+        <div className={cardCls}>
+          <EmptyState
+            icon={GraduationCap}
+            title={activities.length === 0 ? 'No hay servicios registrados aún' : 'Sin resultados para los filtros aplicados'}
+            description={activities.length === 0
+              ? 'Crea el primer servicio con el botón "Nuevo Servicio".'
+              : 'Prueba a ajustar o limpiar los filtros de búsqueda.'}
+            action={hasActiveFilters && (
+              <button className={btnGhost} onClick={resetFilters}>Limpiar filtros</button>
+            )}
+          />
+        </div>
       ) : (
-        <div className="bg-white dark:bg-bg-surface border border-gray-200 dark:border-bg-deep rounded-xl overflow-hidden mt-4">
+        <div className={`overflow-hidden mt-4 ${cardCls}`}>
         <div className="overflow-x-auto">
           <table style={tableStyle}>
-            <thead className="bg-gray-50 dark:bg-bg-deep border-b border-gray-200 dark:border-bg-deep text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">
+            <thead className={theadCls}>
               <tr>
                 <th style={thStyle}>ID</th>
                 <th style={thStyle}>Nombre</th>
@@ -1055,58 +1041,50 @@ export const ActividadesView = () => {
             </thead>
             <tbody>
               {filtered.map(act => (
-                <tr key={act.id}
-                  className="border-b border-slate-100 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-bg-deep transition-colors text-slate-700 dark:text-gray-300 text-sm"
-                >
-                  <td style={{ ...tdStyle, color: '#8E8E93', fontFamily: 'monospace' }}>#{act.id}</td>
+                <tr key={act.id} className={`${trCls} text-sm`}>
+                  <td style={{ ...tdStyle, fontFamily: 'monospace' }} className="text-slate-500 dark:text-gray-500">#{act.id}</td>
                   <td style={{ ...tdStyle, fontWeight: 600 }}>{act.name}</td>
-                  <td style={{ ...tdStyle, color: '#AEAEB2', maxWidth: '280px' }}>
+                  <td style={{ ...tdStyle, maxWidth: '280px' }} className="text-slate-500 dark:text-gray-400">
                     <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {act.description}
                     </span>
                   </td>
                   {isSuperAdmin && (
-                    <td style={{ ...tdStyle, color: '#AEAEB2' }}>
+                    <td style={tdStyle} className="text-slate-500 dark:text-gray-400">
                       {act.gym?.name ?? `Gym #${act.gymId}`}
                     </td>
                   )}
                   <td style={tdStyle}>
                     {act.isFreeAccess
-                      ? <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 700, background: '#FF5E00', color: '#fff' }}>Libre</span>
-                      : <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 700, background: '#38BDF8', color: '#000' }}>Horarios</span>
+                      ? <span className={pillCls('amber')}>Libre</span>
+                      : <span className={pillCls('sky')}>Horarios</span>
                     }
                   </td>
-                  <td style={{ ...tdStyle, color: '#AEAEB2' }}>
-                    {act.defaultDurationMin ? `${act.defaultDurationMin} min` : <span style={{ color: '#636366' }}>—</span>}
+                  <td style={tdStyle} className="text-slate-500 dark:text-gray-400">
+                    {act.defaultDurationMin ? `${act.defaultDurationMin} min` : <span className="text-slate-400 dark:text-gray-600">—</span>}
                   </td>
                   <td style={tdStyle}>
-                    <span style={act.isActive ? badgeActive : badgeInactive}>
-                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: act.isActive ? '#00E5A3' : '#FF5E00', flexShrink: 0 }} />
+                    <span className={pillCls(act.isActive ? 'green' : 'amber')}>
+                      <span className={`w-[5px] h-[5px] rounded-full shrink-0 ${act.isActive ? 'bg-green-400' : 'bg-amber-400'}`} />
                       {act.isActive ? 'Activa' : 'Inactiva'}
                     </span>
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                    <div className="flex gap-1.5 justify-end">
                       <button
                         title="Ver detalle"
                         onClick={() => setDetailTarget(act)}
-                        style={{ width: 32, height: 32, borderRadius: 8, border: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56,189,248,0.12)', color: '#38BDF8', transition: 'background 0.15s' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.26)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.12)'; }}
+                        className={`${iconBtnCls} text-sky-400 hover:bg-sky-500/15 bg-sky-500/10`}
                       ><Eye size={15} /></button>
                       <button
                         onClick={() => setFormTarget(act)}
                         title="Editar actividad"
-                        style={{ width: 32, height: 32, borderRadius: 8, border: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56,189,248,0.12)', color: '#38BDF8', transition: 'background 0.15s' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.26)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.12)'; }}
+                        className={`${iconBtnCls} text-sky-400 hover:bg-sky-500/15 bg-sky-500/10`}
                       ><Edit size={15} /></button>
                       <button
                         onClick={() => setDeleteTarget(act)}
                         title="Eliminar actividad"
-                        style={{ width: 32, height: 32, borderRadius: 8, border: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: '#6b7280', transition: 'background 0.15s, color 0.15s' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.color = '#ef4444'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6b7280'; }}
+                        className={`${iconBtnCls} text-slate-400 dark:text-gray-500 hover:bg-red-500/10 hover:text-red-400`}
                       ><Trash2 size={15} /></button>
                     </div>
                   </td>

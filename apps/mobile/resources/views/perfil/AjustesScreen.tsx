@@ -64,7 +64,7 @@ export const AjustesScreen = () => {
 
       await userApi.updatePushToken(expoPushToken);
 
-      Alert.alert('✅ Notificaciones activadas', 'Recibirás alertas cuando se confirmen tus reservas.');
+      Alert.alert('Notificaciones activadas', 'Recibirás alertas cuando se confirmen tus reservas.');
     } catch (err: any) {
       Alert.alert('Error', err?.message ?? 'No se pudieron activar las notificaciones.');
     } finally {
@@ -93,25 +93,27 @@ export const AjustesScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Opciones del Sistema</Text>
 
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={handlePushNotifications}
-            disabled={pushLoading}
-            activeOpacity={0.7}
-          >
-            {pushLoading
-              ? <DumbbellSpinner size={24} color="#f05b22" style={styles.icon} />
-              : <MaterialCommunityIcons name="bell-badge-outline" size={24} color="#f05b22" style={styles.icon} />
-            }
-            <Text style={styles.menuText}>
-              {pushLoading ? 'Activando notificaciones…' : 'Notificaciones Push'}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.menuCard}>
+            <TouchableOpacity
+              style={[styles.menuItem, styles.menuItemBordered]}
+              onPress={handlePushNotifications}
+              disabled={pushLoading}
+              activeOpacity={0.7}
+            >
+              {pushLoading
+                ? <DumbbellSpinner size={24} color="#f05b22" style={styles.icon} />
+                : <MaterialCommunityIcons name="bell-badge-outline" size={24} color="#f05b22" style={styles.icon} />
+              }
+              <Text style={styles.menuText}>
+                {pushLoading ? 'Activando notificaciones…' : 'Notificaciones Push'}
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
-            <MaterialCommunityIcons name="theme-light-dark" size={24} color="#ccc" style={styles.icon} />
-            <Text style={styles.menuText}>Apariencia (Dark Mode)</Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem}>
+              <MaterialCommunityIcons name="theme-light-dark" size={24} color="#ccc" style={styles.icon} />
+              <Text style={styles.menuText}>Apariencia (Dark Mode)</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -159,11 +161,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 8,
   },
+  menuCard: {
+    backgroundColor: '#1c1c1e',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#333',
+    overflow: 'hidden',
+  },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1c1c1e',
     padding: 16,
+  },
+  menuItemBordered: {
     borderBottomWidth: 1,
     borderBottomColor: '#2c2c2e',
   },

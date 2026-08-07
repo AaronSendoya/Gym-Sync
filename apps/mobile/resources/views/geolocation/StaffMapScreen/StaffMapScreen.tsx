@@ -203,11 +203,16 @@ export const StaffMapScreen: React.FC = () => {
 
         {/* Legend */}
         <View style={s.legend}>
+          {/* Colores idénticos a los que usa aforoColor() dentro de LeafletMapView
+              — antes el legend mostraba solo 2 niveles (verde/rojo) con tonos
+              distintos a los del mapa real, que en realidad usa 3 niveles
+              de aforo (Disponible/Alto/Lleno) más "Cerrada". */}
           {[
             { color: '#f05b22', label: 'Tu sucursal' },
-            { color: '#2ecc71', label: 'Disponible' },
-            { color: '#e74c3c', label: 'Lleno' },
-            { color: '#8e8e93', label: 'Cerrada' },
+            { color: '#34C759', label: 'Disponible' },
+            { color: '#FF9500', label: 'Alto' },
+            { color: '#FF3B30', label: 'Lleno' },
+            { color: '#555555', label: 'Cerrada' },
           ].map(item => (
             <View key={item.label} style={s.legendRow}>
               <View style={[s.legendDot, { backgroundColor: item.color }]} />

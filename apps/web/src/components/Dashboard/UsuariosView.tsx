@@ -6,10 +6,11 @@ import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../infrastructure/api.config';
 import { DB_ROLES, ROLE_ID_TO_NAME } from '../../config/rbac.constants';
-import { ModalOverlay, ConfirmModal, RecordDetailModal, DetailField } from './Shared/DashboardShared';
+import { ModalOverlay, ConfirmModal, RecordDetailModal, DetailField, EmptyState } from './Shared/DashboardShared';
 import { guardClose, panelStyle } from './Shared/DashboardShared.utils';
+import { cardCls, inputCls as sharedInputCls, labelCls as sharedLabelCls, btnPrimary, btnGhost, iconBtnCls, pillCls, theadCls, thCls, tdCls, trCls } from './Shared/designTokens';
 import type { GymDto, UserDto, UserRoleDto } from './Shared/DashboardTypes';
-import { Eye, Edit, Trash2, Plus, Building2, Search, X } from 'lucide-react';
+import { Eye, EyeOff, Edit, Trash2, Plus, Building2, Search, X, ChevronDown, Users } from 'lucide-react';
 
 
 //Interfaz para roles cargados dinámicamente 
@@ -309,12 +310,12 @@ setTouched(false);
   if (!isOpen) return null;
 
   const inputCls = (err?: string) =>
-    `w-full bg-slate-50 dark:bg-[#151521] border ${err ? 'border-red-500' : 'border-slate-200 dark:border-gray-700'} text-slate-900 dark:text-white rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] transition-colors`;
-  const labelCls = "block text-sm font-medium text-slate-700 dark:text-gray-300 mb-1 mt-3";
+    `${sharedInputCls} ${err ? '!border-red-500 focus:!border-red-500 focus:!ring-red-500/20' : ''}`;
+  const labelCls = sharedLabelCls;
 
   return (
     <ModalOverlay onClose={onClose} isDirty={touched} onFormChange={() => setTouched(true)}>
-      <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+      <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-gray-100 mb-2">
         {userToEdit ? 'Editar Usuario' : 'Nuevo Usuario'}
       </h2>
 
@@ -344,15 +345,15 @@ setTouched(false);
         <label className={labelCls}>
           Teléfono{' '}
           {requiresStaffInfo
-            ? <span style={{ color: '#EF4444', fontWeight: 700, fontSize: '0.75rem' }}>*</span>
+            ? <span className="text-red-500 font-bold text-xs">*</span>
             : <span className="text-slate-400 dark:text-gray-500 font-normal text-xs">— opcional</span>}
         </label>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div className="flex gap-2 items-center">
           <select
             value={formData.phonePrefix}
             onChange={e => setFormData({ ...formData, phonePrefix: e.target.value })}
-            className={`bg-slate-50 dark:bg-[#151521] border ${errors.phone ? 'border-red-500' : 'border-slate-200 dark:border-gray-700'} text-slate-900 dark:text-white rounded-lg px-2 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] transition-colors text-sm cursor-pointer`}
-            style={{ width: '95px', flexShrink: 0 }}
+            className={`${inputCls(errors.phone)} text-sm cursor-pointer shrink-0`}
+            style={{ width: '95px' }}
           >
             {PHONE_PREFIXES.map(p => (
               <option key={p.code} value={p.code}>{p.label}</option>
@@ -364,8 +365,7 @@ setTouched(false);
             onChange={e => { setFormData({ ...formData, phoneNumber: e.target.value }); setErrors(p => ({ ...p, phone: '' })); }}
             placeholder="71234567"
             maxLength={14}
-            className={inputCls(errors.phone)}
-            style={{ flex: 1 }}
+            className={`${inputCls(errors.phone)} flex-1`}
           />
         </div>
         {errors.phone && <span className="text-red-500 text-xs mt-1 block">{errors.phone}</span>}
@@ -373,7 +373,7 @@ setTouched(false);
         <label className={labelCls}>
           Carnet de Identidad (CI){' '}
           {requiresStaffInfo
-            ? <span style={{ color: '#EF4444', fontWeight: 700, fontSize: '0.75rem' }}>*</span>
+            ? <span className="text-red-500 font-bold text-xs">*</span>
             : <span className="text-slate-400 dark:text-gray-500 font-normal text-xs">— opcional</span>}
         </label>
         <input
@@ -414,44 +414,24 @@ setTouched(false);
           Contraseña{' '}
           {userToEdit && <span className="text-slate-400 dark:text-gray-500 font-normal text-xs">(vacío = sin cambios)</span>}
         </label>
-        <div style={{ position: 'relative' }}>
+        <div className="relative">
           <input
             type={showPassword ? 'text' : 'password'}
-            className={inputCls(errors.password)}
+            className={`${inputCls(errors.password)} pr-10`}
             value={formData.password}
             onChange={e => { setFormData({ ...formData, password: e.target.value }); setErrors(p => ({ ...p, password: '' })); }}
             placeholder="••••••••"
-            style={{ paddingRight: '42px' }}
           />
-            <button
-              type="button"
-              onClick={() => setShowPassword(v => !v)}
-              style={{
-                position: 'absolute', right: '10px', top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none', border: 'none', cursor: 'pointer',
-                padding: '4px', display: 'flex', alignItems: 'center',
-                color: '#8E8E93',
-              }}
-              title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-            >
-              {showPassword ? (
-                /* Eye-off SVG */
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                  <line x1="1" y1="1" x2="23" y2="23"/>
-                </svg>
-              ) : (
-                /* Eye SVG */
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                  <circle cx="12" cy="12" r="3"/>
-                </svg>
-              )}
-            </button>
-          </div>
-          {errors.password && <span className="text-red-500 text-xs mt-1 block">{errors.password}</span>}
+          <button
+            type="button"
+            onClick={() => setShowPassword(v => !v)}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center p-1 rounded cursor-pointer bg-transparent border-0 text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 transition-colors duration-200"
+            title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
+        {errors.password && <span className="text-red-500 text-xs mt-1 block">{errors.password}</span>}
 
         {isSelfEdit ? (
           <div className="bg-slate-50 dark:bg-bg-surface border border-slate-200 dark:border-gray-700 rounded-lg p-3 mt-3 flex items-start gap-2.5">
@@ -465,7 +445,7 @@ setTouched(false);
           </div>
         ) : (
         <>
-        <label className={labelCls}>Rol del Sistema <span style={{ color: '#EF4444', fontWeight: 700, fontSize: '0.75rem' }}>*</span></label>
+        <label className={labelCls}>Rol del Sistema <span className="text-red-500 font-bold text-xs">*</span></label>
         <select
           className={inputCls(formData.roleId === 0 ? 'required' : undefined)}
           value={formData.roleId}
@@ -483,7 +463,7 @@ setTouched(false);
 
         {/* ── GERENTE (nivel 5): solo Marca — administra la red completa ──────── */}
         {!isSelfEdit && isGerente && (
-          <div className="bg-gray-50 dark:bg-bg-surface border border-brand-orange rounded-xl p-4 mt-3 mb-1 flex flex-col gap-3">
+          <div className="bg-brand-orange/5 border border-brand-orange/30 rounded-xl p-4 mt-3 mb-1 flex flex-col gap-3">
             <p className="m-0 text-xs font-semibold tracking-widest uppercase text-brand-orange">
               Asignación de Marca
             </p>
@@ -509,7 +489,7 @@ setTouched(false);
                     setSelectedMarcaId(val);
                     setFormData(p => ({ ...p, gymIds: val ? [val as number] : [] }));
                   }}
-                  className={`w-full bg-slate-50 dark:bg-[#151521] border ${!selectedMarcaId ? 'border-red-500' : 'border-slate-200 dark:border-gray-700'} text-slate-900 dark:text-white rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] transition-colors`}
+                  className={`${sharedInputCls} ${!selectedMarcaId ? '!border-red-500' : ''}`}
                 >
                   <option value="">— Seleccionar Marca —</option>
                   {sedes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -521,7 +501,7 @@ setTouched(false);
 
         {/* ── RECEPCIONISTA: dos pasos (Marca → Sucursal asignada) ─────────────── */}
         {!isSelfEdit && isRecepcionista && (
-          <div className="bg-gray-50 dark:bg-bg-surface border border-brand-orange rounded-xl p-4 mt-3 mb-1 flex flex-col gap-3">
+          <div className="bg-brand-orange/5 border border-brand-orange/30 rounded-xl p-4 mt-3 mb-1 flex flex-col gap-3">
             <p className="m-0 text-xs font-semibold tracking-widest uppercase text-brand-orange">
               Asignación de Marca y Sucursal
             </p>
@@ -543,7 +523,7 @@ setTouched(false);
                 </div>
               ) : loadingGyms ? <p className="text-sm text-slate-400 dark:text-gray-500">Cargando...</p> : (
                 <select
-                  className={`w-full bg-slate-50 dark:bg-[#151521] border ${!selectedMarcaId ? 'border-red-500' : 'border-slate-200 dark:border-gray-700'} text-slate-900 dark:text-white rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] transition-colors`}
+                  className={`${sharedInputCls} ${!selectedMarcaId ? '!border-red-500' : ''}`}
                   value={selectedMarcaId || ''}
                   onChange={e => {
                     const val = Number(e.target.value);
@@ -570,7 +550,7 @@ setTouched(false);
                 </p>
               ) : (
                 <select
-                  className={`w-full bg-slate-50 dark:bg-[#151521] border ${selectedMarcaId !== '' && formData.gymIds.length === 0 ? 'border-red-500' : 'border-slate-200 dark:border-gray-700'} text-slate-900 dark:text-white rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] transition-colors disabled:opacity-40`}
+                  className={`${sharedInputCls} disabled:opacity-40 ${selectedMarcaId !== '' && formData.gymIds.length === 0 ? '!border-red-500' : ''}`}
                   disabled={selectedMarcaId === ''}
                   // CRÍTICO: El value debe leer directamente del formData
                   value={formData.gymIds && formData.gymIds.length > 0 ? formData.gymIds[0] : ''}
@@ -606,7 +586,7 @@ setTouched(false);
                       setSelectedMarcaId(Number(e.target.value) || '');
                       setFormData(p => ({ ...p, gymIds: [] }));
                     }}
-                    className={`w-full bg-slate-50 dark:bg-[#151521] border ${!selectedMarcaId ? 'border-amber-400' : 'border-slate-200 dark:border-gray-700'} text-slate-900 dark:text-white rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2ecc71] transition-colors`}
+                    className={`${sharedInputCls} ${!selectedMarcaId ? '!border-amber-400' : ''}`}
                   >
                     <option value="">— Seleccionar Marca —</option>
                     {sedes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -637,14 +617,14 @@ setTouched(false);
                             const isChecked = formData.gymIds.includes(Number(g.id));
                             return (
                               <label key={g.id}
-                                className={`flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded-md transition-colors ${
+                                className={`flex items-center gap-2 px-2 py-1.5 cursor-pointer rounded-md border transition-all duration-200 ${
                                   isChecked
-                                    ? 'bg-sky-100 dark:bg-[#0d2d3d] border border-sky-300 dark:border-[#38BDF8]/40'
-                                    : 'border border-transparent hover:bg-slate-100 dark:hover:bg-bg-surface'
+                                    ? 'bg-sky-500/10 border-sky-500/30'
+                                    : 'border-transparent hover:bg-slate-100 dark:hover:bg-white/5'
                                 }`}>
                                 <input type="checkbox" checked={isChecked}
                                   onChange={() => toggleGym(Number(g.id))}
-                                  style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#38BDF8' }} />
+                                  className="w-[15px] h-[15px] cursor-pointer accent-sky-400" />
                                 <span className={`text-sm font-medium ${isChecked ? 'text-sky-700 dark:text-sky-300' : 'text-slate-700 dark:text-gray-300'}`}>
                                   {g.name}
                                 </span>
@@ -661,17 +641,17 @@ setTouched(false);
         )}
 
         {!isSelfEdit && (
-        <div className="flex items-center gap-2 mt-3">
-          <input type="checkbox" style={{ width: 'auto' }} checked={formData.isActive}
+        <div className="flex items-center gap-2 mt-4">
+          <input type="checkbox" className="w-4 h-4 cursor-pointer accent-brand-orange" checked={formData.isActive}
             onChange={e => setFormData({ ...formData, isActive: e.target.checked })} />
           <label className="text-sm font-medium text-slate-700 dark:text-gray-300">Usuario Activo</label>
         </div>
         )}
       </div>
 
-      <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100 dark:border-gray-800 flex-shrink-0">
-        <button className="px-4 py-2 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-bg-deep rounded-lg transition-colors font-medium border-0 cursor-pointer bg-transparent" onClick={() => guardClose(touched, onClose)}>Cancelar</button>
-        <button className="px-4 py-2 bg-brand-celeste text-black font-medium rounded-lg border-0 cursor-pointer" onClick={() => {
+      <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100 dark:border-white/[0.06] flex-shrink-0">
+        <button className={btnGhost} onClick={() => guardClose(touched, onClose)}>Cancelar</button>
+        <button className={btnPrimary} onClick={() => {
           if (!validateForm()) return;
           if (!isSelfEdit && !formData.roleId) {
             toast.error('Debes seleccionar el Rol del Sistema');
@@ -928,85 +908,91 @@ export const UsuariosView = () => {
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <section style={panelStyle} className="glass-panel">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Usuarios</h1>
-      <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
-        {(user?.level ?? 0) >= 10
-          ? 'Gestión de usuarios de toda la red.'
-          : 'Gestión de usuarios de tus sucursales asignadas.'}
-      </p>
-
-      <div className="flex flex-wrap justify-between items-center gap-3 mt-4 mb-4">
-        <div style={{ color: '#8E8E93', fontSize: '0.9rem' }}>
-          {loading ? 'Cargando usuarios...' : `Total: ${meta.total} usuarios`}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-gray-100">Usuarios</h1>
+          <p className="text-sm text-slate-500 dark:text-gray-500 mt-1">
+            {(user?.level ?? 0) >= 10
+              ? 'Gestión de usuarios de toda la red.'
+              : 'Gestión de usuarios de tus sucursales asignadas.'}
+          </p>
         </div>
         {(user?.level ?? 0) >= 4 && (
           <button onClick={() => { setUserToEdit(null); setIsModalOpen(true); }}
-            className="bg-brand-orange text-white font-semibold px-4 py-2 rounded-lg border-0 cursor-pointer whitespace-nowrap inline-flex items-center gap-1.5">
+            className={`${btnPrimary} inline-flex items-center gap-1.5 whitespace-nowrap`}>
             <Plus size={15} />
             Nuevo Usuario
           </button>
         )}
       </div>
 
-      {error && <div style={{ marginTop: '0.75rem', color: '#FF5E00', fontSize: '0.9rem' }}>{error}</div>}
-      {loading && <div style={{ marginTop: '2rem', textAlign: 'center', color: '#8E8E93' }}>Cargando...</div>}
+      <p className="text-sm text-slate-500 dark:text-gray-500 mt-4 mb-1">
+        {loading ? 'Cargando usuarios...' : `Total: ${meta.total} usuarios`}
+      </p>
+
+      {error && <div className="mt-2 text-sm text-red-400">{error}</div>}
+      {loading && <div className="mt-8 text-center text-sm text-slate-500 dark:text-gray-500">Cargando...</div>}
 
       {/* ── Barra de filtros — visible si hay datos o filtros activos; NO depende de loading para que el input nunca se desmonte ── */}
       {!error && (meta.total > 0 || hasActiveFilters) && (
-        <div className="flex flex-col md:flex-row flex-wrap gap-3 items-center mb-6">
+        <div className={`${cardCls} p-4 mt-4 mb-5 flex flex-col md:flex-row flex-wrap gap-3 items-center`}>
           <div className="relative flex-1" style={{ minWidth: '200px' }}>
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 pointer-events-none" />
             <input
               value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Buscar por nombre o email..."
-              className="w-full bg-white dark:bg-bg-deep border border-gray-300 dark:border-gray-700 text-slate-900 dark:text-gray-100 rounded-md pl-9 pr-4 py-2 text-sm focus:outline-none placeholder:text-slate-400 dark:placeholder:text-gray-500"
+              aria-label="Buscar por nombre o email"
+              className={`${sharedInputCls} pl-9`}
             />
           </div>
           {/* Rol */}
-          <div style={{ position: 'relative' }}>
+          <div className="relative">
             <select value={filterRole} onChange={e => setFilterRole(e.target.value)}
-              className="bg-white dark:bg-bg-surface text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-md py-2 pl-3 pr-8 text-sm cursor-pointer appearance-none focus:outline-none">
+              aria-label="Filtrar por rol"
+              className={`${sharedInputCls} pr-8 cursor-pointer appearance-none`}>
               <option value="">Todos los roles</option>
               <option value="none">Sin rol asignado</option>
               {roleOptions.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
             </select>
-            <span style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#8E8E93', fontSize: '0.7rem' }}>▼</span>
+            <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-gray-500" />
           </div>
           {/* Sede asignada */}
           {gymOptions.length > 0 && (
-            <div style={{ position: 'relative' }}>
+            <div className="relative" style={{ maxWidth: '180px' }}>
               <select value={filterGym} onChange={e => setFilterGym(e.target.value)}
-                className="bg-white dark:bg-bg-surface text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-md py-2 pl-3 pr-8 text-sm cursor-pointer appearance-none focus:outline-none" style={{ maxWidth: '180px' }}>
+                aria-label="Filtrar por marca"
+                className={`${sharedInputCls} pr-8 cursor-pointer appearance-none`}>
                 <option value="">Todas las marcas</option>
                 {gymOptions.map(g => <option key={`gym-${g.id}`} value={g.id}>{g.name}</option>)}
               </select>
-              <span style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#8E8E93', fontSize: '0.7rem' }}>▼</span>
+              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-gray-500" />
             </div>
           )}
           {/* Estado */}
-          <div style={{ position: 'relative' }}>
+          <div className="relative">
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
-              className="bg-white dark:bg-bg-surface text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-md py-2 pl-3 pr-8 text-sm cursor-pointer appearance-none focus:outline-none">
+              aria-label="Filtrar por estado"
+              className={`${sharedInputCls} pr-8 cursor-pointer appearance-none`}>
               <option value="all"     >Todos</option>
               <option value="active"  >Solo Activos</option>
               <option value="inactive">Solo Inactivos</option>
             </select>
-            <span style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#8E8E93', fontSize: '0.7rem' }}>▼</span>
+            <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-gray-500" />
           </div>
           {/* Orden */}
-          <div style={{ position: 'relative' }}>
+          <div className="relative">
             <select value={sortOrder} onChange={e => setSortOrder(e.target.value as 'az' | 'za' | 'id_asc' | 'id_desc')}
-              className="bg-white dark:bg-bg-surface text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-md py-2 pl-3 pr-8 text-sm cursor-pointer appearance-none focus:outline-none">
+              aria-label="Ordenar"
+              className={`${sharedInputCls} pr-8 cursor-pointer appearance-none`}>
               <option value="az"      >Nombre A → Z</option>
               <option value="za"      >Nombre Z → A</option>
               <option value="id_asc"  >ID ↑</option>
               <option value="id_desc" >ID ↓</option>
             </select>
-            <span style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#8E8E93', fontSize: '0.7rem' }}>▼</span>
+            <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-gray-500" />
           </div>
           {hasActiveFilters && (
-            <button onClick={resetFilters}
-              style={{ background: 'none', color: '#8E8E93', border: '1px solid #3A3A3C', borderRadius: '8px', padding: '0.45rem 0.85rem', cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+            <button onClick={resetFilters} className={`${btnGhost} inline-flex items-center gap-1.5`}>
               <X size={12} />Limpiar
             </button>
           )}
@@ -1015,7 +1001,7 @@ export const UsuariosView = () => {
 
       {/* Contador */}
       {!loading && !error && (meta.total > 0 || hasActiveFilters || debouncedSearch !== '') && (
-        <div style={{ color: '#8E8E93', fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+        <div className="text-xs text-slate-500 dark:text-gray-500 mb-2">
           {meta.total === 0
             ? 'Sin resultados para los filtros aplicados.'
             : `${meta.total} usuario${meta.total !== 1 ? 's' : ''}${hasActiveFilters ? ' (filtrado)' : ''}`
@@ -1024,31 +1010,37 @@ export const UsuariosView = () => {
       )}
 
       {!loading && !error && users.length === 0 && (
-        <div className="mt-8 text-center bg-gray-50 dark:bg-[#1C1C1E] border border-gray-200 dark:border-gray-700 rounded-xl p-8">
-          {hasActiveFilters ? (
-            <>
-              <p className="text-gray-500 dark:text-[#8E8E93] text-sm">Sin resultados para los filtros aplicados.</p>
-              <button
-                onClick={resetFilters}
-                className="mt-3 text-sm px-4 py-1.5 rounded-lg border border-[#38BDF8] text-[#38BDF8] bg-transparent hover:bg-[#38BDF8]/10 transition-colors cursor-pointer"
-              >
-                Limpiar filtros
-              </button>
-            </>
-          ) : (
-            <p className="text-gray-500 dark:text-[#8E8E93] text-sm">No hay usuarios disponibles en esta marca.</p>
-          )}
+        <div className={`${cardCls} mt-8`}>
+          <EmptyState
+            icon={Users}
+            title={hasActiveFilters ? 'Sin resultados para los filtros aplicados' : 'No hay usuarios disponibles en esta marca'}
+            description={hasActiveFilters
+              ? 'Prueba a ajustar o limpiar los filtros de búsqueda para ver más resultados.'
+              : 'Los usuarios que crees para esta marca o sucursal aparecerán aquí.'}
+            action={hasActiveFilters && (
+              <button onClick={resetFilters} className={btnGhost}>Limpiar filtros</button>
+            )}
+          />
         </div>
       )}
 
       {!loading && !error && users.length > 0 && (
-        <div className="bg-white dark:bg-bg-surface border border-gray-200 dark:border-bg-deep rounded-xl overflow-hidden mt-4">
+        <div className={`overflow-hidden mt-4 ${cardCls}`}>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse" style={{ minWidth: '850px' }}>
-            <thead className="bg-gray-50 dark:bg-bg-deep border-b border-gray-200 dark:border-bg-deep text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">
+          <table className="w-full border-collapse" style={{ minWidth: '850px', tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: '6%' }} />
+              <col style={{ width: '20%' }} />
+              <col style={{ width: '21%' }} />
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '19%' }} />
+              <col style={{ width: '9%' }} />
+              <col style={{ width: '10%' }} />
+            </colgroup>
+            <thead className={theadCls}>
               <tr>
                 {['ID', 'Nombre', 'Email', 'Rol', 'Sucursal / Marca', 'Estado', 'Acciones'].map(h => (
-                  <th key={h} style={{ textAlign: h === 'Acciones' ? 'center' : 'left', padding: '0.6rem' }}>{h}</th>
+                  <th key={h} className={thCls} style={{ textAlign: h === 'Acciones' ? 'center' : 'left' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1077,17 +1069,17 @@ export const UsuariosView = () => {
                 const showSedes = (targetLevel ?? 0) >= 2 && (targetLevel ?? 0) < 10 && gymNames.length > 0;
 
                 return (
-                  <tr key={`user-${u.id}`} className="border-b border-slate-100 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-bg-deep transition-colors text-slate-700 dark:text-gray-300 text-sm">
-                    <td style={{ padding: '0.6rem' }}>{u.id}</td>
-                    <td style={{ padding: '0.6rem' }}>
-                      <p style={{ margin: 0, fontWeight: 700, color: 'inherit' }}>{fullName}</p>
-                      <p style={{ margin: 0, fontSize: '0.72rem', color: '#6b7280', fontFamily: 'monospace' }}>
+                  <tr key={`user-${u.id}`} className={trCls}>
+                    <td className={`${tdCls} text-slate-500 dark:text-gray-500`}>{u.id}</td>
+                    <td className={tdCls}>
+                      <p className="font-semibold text-slate-900 dark:text-gray-100">{fullName}</p>
+                      <p className="text-xs text-slate-500 dark:text-gray-500 font-mono mt-0.5">
                         CI: {u.profile?.ci || 'Sin registrar'}
                       </p>
                     </td>
-                    <td style={{ padding: '0.6rem' }}>{u.email ?? '-'}</td>
-                    <td style={{ padding: '0.6rem', color: '#8E8E93', fontSize: '0.85rem' }}>{roleDisplay}</td>
-                    <td style={{ padding: '0.6rem' }}>
+                    <td className={`${tdCls} truncate`} title={u.email ?? undefined}>{u.email ?? '-'}</td>
+                    <td className={`${tdCls} text-slate-500 dark:text-gray-500`}>{roleDisplay}</td>
+                    <td className={tdCls}>
                       {showSedes ? (() => {
                         const first  = gymsList[0];
                         const extras = gymsList.length - 1;
@@ -1096,61 +1088,43 @@ export const UsuariosView = () => {
                         const sucursalName = info?.sucursalName ?? first?.name ?? `Gym #${gId}`;
                         const sedeName     = info?.sedeName;
                         return (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <div className="flex flex-col gap-1">
                             {/* Primera sucursal siempre visible */}
-                            <span style={{
-                              background: '#38BDF8', color: '#000',
-                              padding: '0.18rem 0.5rem', borderRadius: '4px',
-                              fontSize: '0.75rem',
-                              fontWeight: 600, display: 'inline-block',
-                            }}>{sucursalName}</span>
+                            <span className={pillCls('sky')}>{sucursalName}</span>
                             {sedeName && (
-                              <span style={{ fontSize: '0.68rem', color: '#8E8E93', paddingLeft: '0.2rem' }}>
+                              <span className="text-xs text-slate-500 dark:text-gray-500 pl-0.5">
                                 {sedeName}
                               </span>
                             )}
                             {/* Badge compacto si hay más */}
                             {extras > 0 && (
-                              <span
+                              <button
                                 onClick={() => setViewingUser(u)}
                                 title="Ver ficha completa"
-                                style={{
-                                  fontSize: '0.7rem', color: '#8E8E93',
-                                  cursor: 'pointer', marginTop: '1px',
-                                  textDecoration: 'underline dotted',
-                                  display: 'inline-block',
-                                }}
+                                className="text-xs text-slate-500 dark:text-gray-500 hover:text-brand-orange cursor-pointer mt-0.5 underline decoration-dotted text-left bg-transparent border-0 p-0 transition-colors duration-200"
                               >
                                 y {extras} {extras === 1 ? 'sucursal más' : 'sucursales más'}
-                              </span>
+                              </button>
                             )}
                           </div>
                         );
                       })() : (
-                        <span style={{ color: '#8E8E93', fontSize: '0.82rem' }}>Sin asignar</span>
+                        <span className="text-slate-500 dark:text-gray-500 text-sm">Sin asignar</span>
                       )}
                     </td>
-                    <td style={{ padding: '0.6rem' }}>
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 5,
-                        padding: '3px 10px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700,
-                        background: u.isActive ? 'rgba(0,229,163,0.12)' : 'rgba(255,94,0,0.12)',
-                        color: u.isActive ? '#00E5A3' : '#FF5E00',
-                        border: `1px solid ${u.isActive ? 'rgba(0,229,163,0.3)' : 'rgba(255,94,0,0.3)'}`,
-                      }}>
-                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: u.isActive ? '#00E5A3' : '#FF5E00', flexShrink: 0 }} />
+                    <td className={tdCls}>
+                      <span className={pillCls(u.isActive ? 'green' : 'red')}>
+                        <span className={`w-[5px] h-[5px] rounded-full shrink-0 ${u.isActive ? 'bg-green-400' : 'bg-red-400'}`} />
                         {u.isActive ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-                    <td style={{ padding: '0.6rem', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center' }}>
+                    <td className={`${tdCls} text-center`}>
+                      <div className="flex gap-1.5 justify-center items-center">
                         {/* Ver detalle */}
                         <button
                           onClick={() => setViewingUser(u)}
                           title="Ver detalle"
-                          style={{ width: 32, height: 32, borderRadius: 8, border: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56,189,248,0.12)', color: '#38BDF8', transition: 'background 0.15s' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.26)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.12)'; }}
+                          className={`${iconBtnCls} text-sky-400 hover:bg-sky-500/15 bg-sky-500/10`}
                         >
                           <Eye size={15} />
                         </button>
@@ -1160,9 +1134,7 @@ export const UsuariosView = () => {
                           <button
                             onClick={() => { setUserToEdit(u); setIsModalOpen(true); }}
                             title={isSelf ? 'Editar mi perfil' : 'Editar usuario'}
-                            style={{ width: 32, height: 32, borderRadius: 8, border: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56,189,248,0.12)', color: '#38BDF8', transition: 'background 0.15s' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.26)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.12)'; }}
+                            className={`${iconBtnCls} text-sky-400 hover:bg-sky-500/15 bg-sky-500/10`}
                           >
                             <Edit size={15} />
                           </button>
@@ -1173,9 +1145,7 @@ export const UsuariosView = () => {
                           <button
                             onClick={() => setDeleteConfirmUser(u)}
                             title="Eliminar usuario"
-                            style={{ width: 32, height: 32, borderRadius: 8, border: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: '#6b7280', transition: 'background 0.15s, color 0.15s' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.color = '#ef4444'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6b7280'; }}
+                            className={`${iconBtnCls} text-slate-400 dark:text-gray-500 hover:bg-red-500/10 hover:text-red-400`}
                           >
                             <Trash2 size={15} />
                           </button>
@@ -1252,11 +1222,7 @@ export const UsuariosView = () => {
           viewingUser?.profile?.gender || 'Sin especificar'
         } />
         <DetailField label="Estado de Cuenta"
-          value={
-            <span style={{ color: viewingUser?.isActive ? '#00E5A3' : '#FF5E00', fontWeight: 700 }}>
-              {viewingUser?.isActive ? '● ACTIVO' : '● INACTIVO'}
-            </span>
-          } />
+          value={<span className={pillCls(viewingUser?.isActive ? 'green' : 'red')}>{viewingUser?.isActive ? 'ACTIVO' : 'INACTIVO'}</span>} />
         <DetailField label="Rol del Sistema" isFullWidth
           value={(() => {
             const ur    = viewingUser?.userRoles?.[0];
@@ -1280,7 +1246,7 @@ export const UsuariosView = () => {
               <DetailField
                 label="Sucursal Asignada"
                 isFullWidth
-                value={<span style={{ color: '#636366', fontStyle: 'italic' }}>Sin asignar</span>}
+                value={<span className="text-slate-400 dark:text-gray-500 italic">Sin asignar</span>}
               />
             );
           }
@@ -1299,12 +1265,16 @@ export const UsuariosView = () => {
             return (
               <>
                 <DetailField
-                  label={<span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Building2 size={12} />Sucursal (Marca)</span>}
-                  value={<span style={{ color: '#FF5E00', fontWeight: 600 }}>{sedeName}</span>}
+                  label={<span className="flex items-center gap-1"><Building2 size={12} />Sucursal (Marca)</span>}
+                  value={<span className="text-brand-orange font-semibold">{sedeName}</span>}
                 />
                 <DetailField
                   label="Sucursal Asignada"
-                  value={<span style={{ color: sucursalName === '—' ? '#636366' : '#38BDF8', fontWeight: 600, fontStyle: sucursalName === '—' ? 'italic' : 'normal' }}>{sucursalName}</span>}
+                  value={
+                    <span className={sucursalName === '—' ? 'text-slate-400 dark:text-gray-500 italic' : 'text-sky-500 dark:text-sky-400 font-semibold'}>
+                      {sucursalName}
+                    </span>
+                  }
                 />
               </>
             );
@@ -1316,21 +1286,17 @@ export const UsuariosView = () => {
               label={`Sucursales Asignadas (${gymsInRoles.length})`}
               isFullWidth
               value={
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.25rem' }}>
+                <div className="flex flex-col gap-2 mt-1">
                   {gymsInRoles.map((g, i) => {
                     const gId   = Number(g?.id);
                     const info  = gymInfoMap.get(gId);
                     const sucursalName = info?.sucursalName ?? g?.name ?? `Gym #${gId}`;
                     const sedeName     = info?.sedeName     ?? g?.parent?.name ?? null;
                     return (
-                      <div key={i} style={{
-                        padding: '0.5rem 0.75rem',
-                        background: '#38BDF8',
-                        borderRadius: '6px',
-                      }}>
-                        <div style={{ color: '#000', fontWeight: 600, fontSize: '0.88rem' }}>{sucursalName}</div>
+                      <div key={i} className="px-3 py-2 rounded-lg bg-sky-500/10 border border-sky-500/25">
+                        <div className="text-sky-600 dark:text-sky-400 font-semibold text-sm">{sucursalName}</div>
                         {sedeName && (
-                          <div style={{ color: '#555555', fontSize: '0.78rem', marginTop: '0.2rem' }}>
+                          <div className="text-slate-500 dark:text-gray-500 text-xs mt-0.5">
                             {sedeName}
                           </div>
                         )}
@@ -1349,7 +1315,7 @@ export const UsuariosView = () => {
           if (targetLevel !== 2) return null;
           if (viewUserClasses.length === 0) return (
             <DetailField label="Clases Asignadas" isFullWidth value={
-              <span style={{ fontSize: '0.82rem', color: '#636366' }}>Sin clases asignadas.</span>
+              <span className="text-sm text-slate-400 dark:text-gray-500">Sin clases asignadas.</span>
             } />
           );
           return (
@@ -1357,13 +1323,13 @@ export const UsuariosView = () => {
               label={`Clases Asignadas (${viewUserClasses.length})`}
               isFullWidth
               value={
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.25rem' }}>
+                <div className="flex flex-col gap-1.5 mt-1">
                   {viewUserClasses.map((c, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', padding: '0.35rem 0.6rem', borderRadius: '6px', background: 'rgba(56,189,248,0.08)' }}>
-                      <span style={{ fontWeight: 700, minWidth: '3rem', color: '#38BDF8' }}>{c.day}</span>
-                      <span style={{ color: '#636366', minWidth: '7rem' }}>{c.time}</span>
-                      <span style={{ fontWeight: 600, color: '#1c1c1e' }}>{c.activity}</span>
-                      <span style={{ color: '#636366', marginLeft: 'auto' }}>{c.gymName}</span>
+                    <div key={i} className="flex items-center gap-2 text-sm px-2.5 py-1.5 rounded-lg bg-sky-500/5 border border-sky-500/15">
+                      <span className="font-bold text-sky-500 dark:text-sky-400" style={{ minWidth: '3rem' }}>{c.day}</span>
+                      <span className="text-slate-500 dark:text-gray-500" style={{ minWidth: '7rem' }}>{c.time}</span>
+                      <span className="font-semibold text-slate-900 dark:text-gray-100">{c.activity}</span>
+                      <span className="text-slate-500 dark:text-gray-500 ml-auto">{c.gymName}</span>
                     </div>
                   ))}
                 </div>

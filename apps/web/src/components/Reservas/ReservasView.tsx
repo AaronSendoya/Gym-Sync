@@ -4,9 +4,10 @@ import { reservationsApi } from '../../infrastructure/AxiosReservationsApi.adapt
 import { apiClient } from '../../infrastructure/api.config';
 import type { Reservation } from '../../infrastructure/Reservations.types';
 import { QrScannerModal } from './QrScannerModal';
-import { RecordDetailModal, DetailField } from '../Dashboard/Shared/DashboardShared';
+import { RecordDetailModal, DetailField, EmptyState } from '../Dashboard/Shared/DashboardShared';
+import { btnPrimary, inputCls, iconBtnCls, cardCls, theadCls, thCls, tdCls, trCls } from '../Dashboard/Shared/designTokens';
 import './ReservasView.css';
-import { Eye, CheckCircle, X, Loader2, RotateCw, QrCode } from 'lucide-react';
+import { Eye, CheckCircle, X, Loader2, RotateCw, QrCode, CalendarClock } from 'lucide-react';
 
 const STATUS_DISPLAY: Record<string, { label: string; cls: string }> = {
   // inglés (valores originales)
@@ -19,6 +20,7 @@ const STATUS_DISPLAY: Record<string, { label: string; cls: string }> = {
   COMPLETADA: { label: 'COMPLETADA', cls: 'used' },
   CANCELADA:  { label: 'CANCELADA',  cls: 'cancelled' },
   PENDIENTE:  { label: 'PENDIENTE',  cls: 'pending' },
+  CADUCADA:   { label: 'CADUCADA',   cls: 'expired' },
 };
 
 const statusDisplay = (s: string) =>
@@ -183,7 +185,7 @@ export const ReservasView = () => {
         </div>
 
         <div className="view-filters">
-          <button onClick={() => setShowScanner(true)} className="bg-brand-orange text-white font-semibold px-4 py-2 rounded-lg border-0 cursor-pointer inline-flex items-center gap-1.5 text-sm">
+          <button onClick={() => setShowScanner(true)} className={`${btnPrimary} inline-flex items-center gap-1.5`}>
             <QrCode size={15} />
             Escanear QR
           </button>
@@ -193,13 +195,12 @@ export const ReservasView = () => {
             placeholder="Buscar por Nombre o CI..."
             value={searchTerm}
             onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-            className="w-full bg-white dark:bg-bg-surface text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-md px-4 py-2 focus:outline-none"
+            className={inputCls}
             style={{ minWidth: '220px' }}
           />
 
           {!isGerente && sucursales.length > 0 && (
-            <select value={filterGym} onChange={e => setFilterGym(e.target.value)}
-              className="bg-white dark:bg-bg-surface text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-md px-4 py-2 focus:outline-none">
+            <select value={filterGym} onChange={e => setFilterGym(e.target.value)} className={inputCls}>
               <option value="">Sucursal: Todas</option>
               {sucursales.map(s => (
                 <option key={s.id} value={s.id}>{s.name}</option>
@@ -207,8 +208,7 @@ export const ReservasView = () => {
             </select>
           )}
 
-          <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-            className="bg-white dark:bg-bg-surface text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-md px-4 py-2 focus:outline-none">
+          <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setCurrentPage(1); }} className={inputCls}>
             <option value="">Todas las reservas</option>
             <option value="HOY">Hoy</option>
             <option value="CONFIRMADA">Generadas</option>
@@ -216,28 +216,37 @@ export const ReservasView = () => {
             <option value="CANCELADA">Canceladas</option>
           </select>
 
-          <button onClick={loadReservations} title="Refrescar" className="text-text-muted hover:text-brand-celeste dark:text-text-muted border border-gray-300 dark:border-gray-700 bg-transparent rounded-lg p-2 cursor-pointer inline-flex items-center">
+          <button onClick={loadReservations} title="Refrescar" className={`${iconBtnCls} text-slate-500 dark:text-gray-400 border border-slate-300 dark:border-gray-700 hover:text-brand-orange hover:border-brand-orange/40`}>
             <RotateCw size={15} />
           </button>
         </div>
       </div>
 
       {/* ── Tabla ── */}
-      <div className="bg-white dark:bg-bg-surface border border-gray-200 dark:border-bg-deep rounded-xl overflow-x-auto mt-4">
+      <div className={`overflow-x-auto mt-4 ${cardCls}`}>
         {loading ? (
           <div className="loading-state">Cargando registros...</div>
         ) : (
           <>
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-gray-50 dark:bg-bg-deep border-b border-gray-200 dark:border-bg-deep text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">
+            <table className="w-full text-left border-collapse" style={{ tableLayout: 'fixed', minWidth: '980px' }}>
+              <colgroup>
+                <col style={{ width: '22%' }} />
+                <col style={{ width: '11%' }} />
+                <col style={{ width: '15%' }} />
+                <col style={{ width: '13%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '15%' }} />
+              </colgroup>
+              <thead className={theadCls}>
                 <tr>
-                  <th className="px-6 py-4">Usuario</th>
-                  <th className="px-6 py-4">Carnet (CI)</th>
-                  <th className="px-6 py-4">Actividad</th>
-                  <th className="px-6 py-4">Sucursal</th>
-                  <th className="px-6 py-4">Horario</th>
-                  <th className="px-6 py-4">Estado</th>
-                  <th className="px-6 py-4 text-center" style={{ minWidth: '220px' }}>Acciones</th>
+                  <th className={thCls}>Usuario</th>
+                  <th className={thCls}>Carnet (CI)</th>
+                  <th className={thCls}>Actividad</th>
+                  <th className={thCls}>Sucursal</th>
+                  <th className={thCls}>Horario</th>
+                  <th className={thCls}>Estado</th>
+                  <th className={`${thCls} text-center`}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -257,26 +266,26 @@ export const ReservasView = () => {
                     res.gymActivity?.gymId ||
                     null;
                   return (
-                    <tr key={res.id} className="border-b border-slate-100 dark:border-gray-800 hover:bg-slate-50 dark:hover:bg-bg-deep transition-colors text-slate-700 dark:text-gray-300 text-sm">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                    <tr key={res.id} className={trCls}>
+                      <td className={tdCls}>
+                        <div className="flex items-center gap-3 min-w-0">
                           <div className="user-avatar-mini">
                             {res.user?.profile?.fullName?.charAt(0) || 'U'}
                           </div>
-                          <div className="flex flex-col gap-0.5">
-                            <span className="font-semibold text-slate-900 dark:text-white text-sm">{res.user?.profile?.fullName || 'Usuario'}</span>
-                            <span className="text-xs text-slate-500 dark:text-gray-400">{res.user?.email}</span>
+                          <div className="flex flex-col gap-0.5 min-w-0">
+                            <span className="font-semibold text-slate-900 dark:text-white text-sm truncate">{res.user?.profile?.fullName || 'Usuario'}</span>
+                            <span className="text-xs text-slate-500 dark:text-gray-400 truncate">{res.user?.email}</span>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 cell-ci">{res.user?.profile?.ci || '—'}</td>
-                      <td className="px-6 py-4 cell-activity">{activityName || '—'}</td>
-                      <td className="px-6 py-4">{(() => {
+                      <td className={`${tdCls} cell-ci`}>{res.user?.profile?.ci || '—'}</td>
+                      <td className={`${tdCls} cell-activity truncate`}>{activityName || '—'}</td>
+                      <td className={`${tdCls} truncate`}>{(() => {
                         const gId = activityGymId;
                         const info = gId ? gymInfoMap.get(gId) : undefined;
                         return info ? info.sucursalName : (gId ? `Sucursal #${gId}` : '—');
                       })()}</td>
-                      <td className="px-6 py-4">
+                      <td className={tdCls}>
                         <div className="cell-time">
                           {(() => {
                             const st = (res.startTime ?? res.gymActivitySchedule?.startTime)?.substring(0, 5);
@@ -286,16 +295,16 @@ export const ReservasView = () => {
                           <span className="date">{res.reservationDate?.substring(0, 10)}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className={tdCls}>
                         {(() => { const d = statusDisplay(res.status); return (
                           <span className={`badge-status ${d.cls}`}>{d.label}</span>
                         ); })()}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className={tdCls}>
                         <div className="flex items-center gap-2">
                           {/* Detalle */}
                           <button
-                            className="bg-brand-celeste text-black p-1.5 rounded cursor-pointer flex items-center justify-center"
+                            className={`${iconBtnCls} text-sky-400 hover:bg-sky-500/15 bg-sky-500/10`}
                             title="Ver detalle completo de reserva"
                             onClick={() => setViewingReservation(res)}
                             disabled={isLoading}
@@ -305,7 +314,7 @@ export const ReservasView = () => {
 
                           {/* Aceptar — solo para CONFIRMED */}
                           <button
-                            className={`p-1.5 rounded flex items-center justify-center ${isConfirmed ? 'bg-brand-green text-black cursor-pointer' : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed opacity-50'}`}
+                            className={`${iconBtnCls} ${isConfirmed ? 'text-green-400 hover:bg-green-500/15 bg-green-500/10' : 'text-slate-300 dark:text-gray-600 bg-slate-100 dark:bg-gray-800 cursor-not-allowed opacity-50'}`}
                             title="Aceptar entrada"
                             onClick={() => handleAccept(res)}
                             disabled={!isConfirmed || isLoading}
@@ -315,7 +324,7 @@ export const ReservasView = () => {
 
                           {/* Cancelar — solo para CONFIRMED */}
                           <button
-                            className={`bg-transparent border-0 p-1.5 rounded flex items-center justify-center ${isConfirmed ? 'text-gray-500 dark:text-text-muted cursor-pointer' : 'text-gray-300 opacity-50 cursor-not-allowed'}`}
+                            className={`${iconBtnCls} ${isConfirmed ? 'text-slate-400 dark:text-gray-500 hover:bg-red-500/10 hover:text-red-400' : 'text-slate-300 dark:text-gray-700 opacity-50 cursor-not-allowed'}`}
                             title="Cancelar reserva"
                             onClick={() => handleCancel(res.id)}
                             disabled={!isConfirmed || isLoading}
@@ -336,9 +345,7 @@ export const ReservasView = () => {
                 <button
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(p => p - 1)}
-                  className="text-sm bg-white dark:bg-bg-deep border border-gray-200 dark:border-gray-700 text-slate-700 dark:text-white px-4 py-2 rounded-md cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                  onMouseEnter={e => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = '#FF5E00'; e.currentTarget.style.color = '#FF5E00'; } }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.color = ''; }}
+                  className="text-sm bg-white dark:bg-bg-deep border border-gray-200 dark:border-gray-700 text-slate-700 dark:text-white px-4 py-2 rounded-md cursor-pointer transition-colors duration-200 enabled:hover:border-brand-orange enabled:hover:text-brand-orange disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   Anterior
                 </button>
@@ -348,9 +355,7 @@ export const ReservasView = () => {
                 <button
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(p => p + 1)}
-                  className="text-sm bg-white dark:bg-bg-deep border border-gray-200 dark:border-gray-700 text-slate-700 dark:text-white px-4 py-2 rounded-md cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                  onMouseEnter={e => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = '#FF5E00'; e.currentTarget.style.color = '#FF5E00'; } }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.color = ''; }}
+                  className="text-sm bg-white dark:bg-bg-deep border border-gray-200 dark:border-gray-700 text-slate-700 dark:text-white px-4 py-2 rounded-md cursor-pointer transition-colors duration-200 enabled:hover:border-brand-orange enabled:hover:text-brand-orange disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   Siguiente
                 </button>
@@ -360,7 +365,11 @@ export const ReservasView = () => {
         )}
 
         {reservations.length === 0 && !loading && (
-          <div className="empty-state">No hay reservas registradas para estos filtros.</div>
+          <EmptyState
+            icon={CalendarClock}
+            title="No hay reservas registradas"
+            description="Ajusta los filtros de sucursal o estado para ver otras reservas."
+          />
         )}
       </div>
 
@@ -375,7 +384,7 @@ export const ReservasView = () => {
           value={(() => {
             const d = statusDisplay(viewingReservation?.status || '');
             return (
-              <span className={`badge-status ${d.cls}`} style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '12px', fontWeight: 700, fontSize: '0.75rem' }}>
+              <span className={`badge-status ${d.cls} inline-block`}>
                 {d.label}
               </span>
             );
@@ -425,7 +434,7 @@ export const ReservasView = () => {
             label="Token de Seguridad QR" 
             isFullWidth 
             value={
-              <code style={{ wordBreak: 'break-all', background: '#0A0A0A', padding: '0.4rem 0.6rem', borderRadius: '6px', color: '#fff', fontSize: '0.8rem', display: 'block' }}>
+              <code className="break-all bg-bg-deep text-white px-2.5 py-1.5 rounded-md text-[0.8rem] block">
                 {viewingReservation.qrToken}
               </code>
             } 

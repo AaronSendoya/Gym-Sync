@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo } from 'react';
-import type { CSSProperties } from 'react';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../infrastructure/api.config';
-import { ModalOverlay, ConfirmModal } from './Shared/DashboardShared';
+import { ModalOverlay, ConfirmModal, EmptyState } from './Shared/DashboardShared';
 import { guardClose, panelStyle } from './Shared/DashboardShared.utils';
+import { cardCls, inputCls as sharedInputCls, btnPrimary, btnGhost, iconBtnCls, pillCls } from './Shared/designTokens';
 import type { GymDto, GymScheduleDto, UserDto, CheckinDto, ScheduleEntry } from './Shared/DashboardTypes';
-import { Edit, Trash2, Plus, Shield } from 'lucide-react';
+import { Edit, Trash2, Plus, Shield, X } from 'lucide-react';
 
 type RoleDto = {
   id: number;
@@ -88,29 +88,15 @@ const RoleModal = ({ isOpen, onClose, roleToEdit, onSave, roles }: any) => {
 
   if (!isOpen) return null;
 
-  const fgLabel: CSSProperties = { fontSize: '0.8rem', color: '#8E8E93', fontWeight: 600, marginBottom: '0.35rem', display: 'block' };
-  const fgInput  = (hasErr: boolean): CSSProperties => ({
-    width: '100%', boxSizing: 'border-box',
-    background: '#1C1C1E',
-    border: `1px solid ${hasErr ? '#ef4444' : '#3A3A3C'}`,
-    borderRadius: '8px', padding: '0.6rem 0.75rem',
-    color: '#FFFFFF', fontSize: '0.9rem',
-  });
-  const fgGroup: CSSProperties = { display: 'flex', flexDirection: 'column', marginBottom: '1rem' };
-  const errStyle: CSSProperties = { color: '#ef4444', fontSize: '0.72rem', marginTop: '0.3rem' };
-
   return (
     <ModalOverlay onClose={onClose} isDirty={touched} onFormChange={() => setTouched(true)}>
       {/* Header */}
-      <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-gray-800 mb-4">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white m-0">
+      <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-white/[0.06] mb-4">
+        <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-gray-100 m-0">
           {roleToEdit ? 'Editar Rol' : 'Nuevo Rol'}
         </h2>
-        <button
-          onClick={() => guardClose(touched, onClose)}
-          className="text-slate-400 hover:text-slate-600 dark:text-gray-500 dark:hover:text-gray-300 text-sm font-bold bg-slate-100 dark:bg-gray-800 px-2 py-1 rounded border-0 cursor-pointer transition-colors"
-        >
-          ✕
+        <button onClick={() => guardClose(touched, onClose)} className={`${iconBtnCls} text-slate-400 dark:text-gray-500 hover:bg-slate-100 dark:hover:bg-white/5`}>
+          <X size={18} />
         </button>
       </div>
 
@@ -121,7 +107,7 @@ const RoleModal = ({ isOpen, onClose, roleToEdit, onSave, roles }: any) => {
         </label>
         <input
           type="text"
-          className={`w-full bg-slate-50 dark:bg-[#151521] border ${errors.name ? 'border-red-500' : 'border-slate-200 dark:border-gray-700'} text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors`}
+          className={`${sharedInputCls} ${errors.name ? '!border-red-500' : ''}`}
           value={formData.name}
           onChange={e => {
             setFormData({ ...formData, name: e.target.value.toUpperCase().replace(/\s/g, '_') });
@@ -146,7 +132,7 @@ const RoleModal = ({ isOpen, onClose, roleToEdit, onSave, roles }: any) => {
         <textarea
           maxLength={300}
           rows={3}
-          className={`w-full bg-slate-50 dark:bg-[#151521] border ${errors.description ? 'border-red-500' : 'border-slate-200 dark:border-gray-700'} text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors resize-none font-sans`}
+          className={`${sharedInputCls} resize-none font-sans ${errors.description ? '!border-red-500' : ''}`}
           value={formData.description}
           onChange={e => {
             setFormData({ ...formData, description: e.target.value });
@@ -172,14 +158,14 @@ const RoleModal = ({ isOpen, onClose, roleToEdit, onSave, roles }: any) => {
           Nivel Jerárquico
         </label>
         <select
-          className="w-full bg-white dark:bg-bg-surface border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none cursor-pointer"
+          className={`${sharedInputCls} cursor-pointer`}
           value={formData.hierarchyLevel}
           onChange={e => setFormData({ ...formData, hierarchyLevel: Number(e.target.value) })}
         >
-          <option value={4} className="bg-white dark:bg-[#151521] text-slate-900 dark:text-white">Medio-Alto (4) — Recepcionistas / Secretarios</option>
-          <option value={3} className="bg-white dark:bg-[#151521] text-slate-900 dark:text-white">Medio (3) — Entrenadores / Nutricionistas</option>
-          <option value={2} className="bg-white dark:bg-[#151521] text-slate-900 dark:text-white">Básico-Avanzado (2) — Instructores de Clases Grupales</option>
-          <option value={1} className="bg-white dark:bg-[#151521] text-slate-900 dark:text-white">Básico (1) — Usuarios / Clientes</option>
+          <option value={4}>Medio-Alto (4) — Recepcionistas / Secretarios</option>
+          <option value={3}>Medio (3) — Entrenadores / Nutricionistas</option>
+          <option value={2}>Básico-Avanzado (2) — Instructores de Clases Grupales</option>
+          <option value={1}>Básico (1) — Usuarios / Clientes</option>
         </select>
       </div>
 
@@ -187,7 +173,7 @@ const RoleModal = ({ isOpen, onClose, roleToEdit, onSave, roles }: any) => {
       <div className="flex items-center gap-2 mb-4">
         <input
           type="checkbox"
-          className="w-4 h-4 cursor-pointer accent-blue-600 rounded"
+          className="w-4 h-4 cursor-pointer accent-brand-orange rounded"
           id="isSystemRoleCheckbox"
           checked={formData.isSystemRole}
           onChange={e => setFormData({ ...formData, isSystemRole: e.target.checked })}
@@ -199,23 +185,17 @@ const RoleModal = ({ isOpen, onClose, roleToEdit, onSave, roles }: any) => {
 
       {/* Warning */}
       {roleToEdit?.isSystemRole && (
-        <div className="p-3 bg-brand-orange text-white rounded-lg text-xs font-semibold mb-4">
+        <div className="p-3 bg-brand-orange/10 border border-brand-orange/30 text-brand-orange rounded-lg text-xs font-semibold mb-4">
           Atención: este es un rol de sistema. Modifícalo con precaución.
         </div>
       )}
 
       {/* Acciones */}
-      <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-gray-800">
-        <button
-          onClick={() => guardClose(touched, onClose)}
-          className="px-4 py-2 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 text-sm font-semibold rounded-lg border-0 cursor-pointer transition-colors"
-        >
+      <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-white/[0.06]">
+        <button onClick={() => guardClose(touched, onClose)} className={btnGhost}>
           Cancelar
         </button>
-        <button
-          onClick={handleSubmit}
-          className="px-4 py-2 bg-brand-celeste text-black text-sm font-bold rounded-lg border-0 cursor-pointer"
-        >
+        <button onClick={handleSubmit} className={btnPrimary}>
           {roleToEdit ? 'Actualizar Rol' : 'Crear Rol'}
         </button>
       </div>
@@ -237,10 +217,10 @@ export const RolesView = () => {
   if ((user?.level ?? 0) < 10) {
     return (
       <section style={panelStyle} className="glass-panel">
-        <div style={{ padding: '3rem', textAlign: 'center', color: '#FF5E00' }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1rem', letterSpacing: '0.1em' }}>ACCESO DENEGADO</div>
-          <h2>Acceso Denegado</h2>
-          <p style={{ color: '#8E8E93' }}>Solo el Super Administrador puede gestionar los roles del sistema.</p>
+        <div className={`${cardCls} py-16 px-8 text-center`}>
+          <Shield size={32} className="mx-auto mb-3 text-brand-orange opacity-70" />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-gray-100 mb-1.5">Acceso Denegado</h2>
+          <p className="text-sm text-slate-500 dark:text-gray-500">Solo el Super Administrador puede gestionar los roles del sistema.</p>
         </div>
       </section>
     );
@@ -317,62 +297,60 @@ export const RolesView = () => {
     }
   };
 
-  const hierarchyColor = (level?: number) => {
-    if (!level) return '#8E8E93';
-    if (level >= 10) return '#FF5E00';
-    if (level >= 5) return '#FF5E00';
-    if (level >= 4) return '#38BDF8';
-    if (level >= 3) return '#38BDF8';
-    return '#00E5A3';
+  type HierarchyTone = 'amber' | 'sky' | 'green' | 'gray';
+  const hierarchyTone = (level?: number): HierarchyTone => {
+    if (!level) return 'gray';
+    if (level >= 5) return 'amber';
+    if (level >= 3) return 'sky';
+    return 'green';
+  };
+  const HIERARCHY_ICON_CLS: Record<HierarchyTone, string> = {
+    amber: 'border-amber-500/40 text-amber-500 dark:text-amber-400',
+    sky:   'border-sky-500/40 text-sky-500 dark:text-sky-400',
+    green: 'border-green-500/40 text-green-500 dark:text-green-400',
+    gray:  'border-gray-400/40 text-gray-500 dark:text-gray-400',
   };
 
   return (
     <section style={panelStyle} className="glass-panel">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gestión de Roles</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-gray-100">Gestión de Roles</h1>
       <p className="text-sm text-slate-600 dark:text-gray-400 mt-1">Administración de roles y jerarquías del sistema. Solo visible para Super Administradores.</p>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-        <div className="text-sm text-slate-500 dark:text-gray-400">
+      <div className="flex justify-between items-center mt-4">
+        <div className="text-sm text-slate-500 dark:text-gray-500">
           {loading ? 'Cargando roles...' : `${roles.length} roles registrados`}
         </div>
-        <button
-          onClick={() => { setRoleToEdit(null); setIsModalOpen(true); }}
-          className="bg-brand-orange text-white font-semibold px-4 py-2 rounded-lg border-0 cursor-pointer inline-flex items-center gap-1.5"
-        >
+        <button onClick={() => { setRoleToEdit(null); setIsModalOpen(true); }} className={`${btnPrimary} inline-flex items-center gap-1.5`}>
           <Plus size={15} />
           Nuevo Rol
         </button>
       </div>
 
-      {error && <div style={{ marginTop: '0.75rem', color: '#FF5E00' }}>{error}</div>}
+      {error && <div className="mt-2 text-sm text-red-400">{error}</div>}
 
       {!loading && !error && (
-        <div style={{ marginTop: '1.25rem', display: 'grid', gap: '0.75rem' }}>
+        <div className="mt-5 grid gap-3">
           {roles.map(role => (
             <div
               key={role.id}
-              className={`flex justify-between items-center rounded-xl bg-white dark:bg-bg-surface ${role.isSystemRole ? 'border border-brand-orange' : 'border border-gray-200 dark:border-bg-deep'}`}
-              style={{ padding: '1rem 1.25rem' }}
+              className={`flex justify-between items-center rounded-xl px-5 py-4 ${cardCls} ${role.isSystemRole ? '!border-brand-orange/30' : ''}`}
             >
               {/* Info del Rol */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                <div
-                  className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-bg-deep flex items-center justify-center flex-shrink-0"
-                  style={{ border: `1px solid ${hierarchyColor(role.hierarchyLevel)}` }}
-                >
-                  <Shield size={17} color={hierarchyColor(role.hierarchyLevel)} />
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className={`w-9 h-9 rounded-lg bg-slate-100 dark:bg-white/5 border flex items-center justify-center shrink-0 ${HIERARCHY_ICON_CLS[hierarchyTone(role.hierarchyLevel)]}`}>
+                  <Shield size={17} />
                 </div>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span className="font-bold text-gray-900 dark:text-white" style={{ fontSize: '0.95rem', fontFamily: 'monospace' }}>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-gray-900 dark:text-gray-100 text-[0.95rem] font-mono">
                       {role.name}
                     </span>
                     {role.isSystemRole && (
-                      <span style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', background: '#FF5E00', color: '#fff', fontWeight: 700, border: 'none' }}>
+                      <span className="text-[0.7rem] px-1.5 py-0.5 rounded bg-brand-orange/15 text-brand-orange font-bold border border-brand-orange/30">
                         SISTEMA
                       </span>
                     )}
-                    <span className="bg-gray-100 dark:bg-bg-deep" style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', color: hierarchyColor(role.hierarchyLevel), border: `1px solid ${hierarchyColor(role.hierarchyLevel)}` }}>
+                    <span className={pillCls(hierarchyTone(role.hierarchyLevel))}>
                       Nivel {role.hierarchyLevel ?? '—'}
                     </span>
                   </div>
@@ -385,13 +363,11 @@ export const RolesView = () => {
               </div>
 
               {/* Acciones */}
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <div className="flex gap-1.5 shrink-0">
                 <button
                   onClick={() => { setRoleToEdit(role); setIsModalOpen(true); }}
                   title="Editar rol"
-                  style={{ width: 32, height: 32, borderRadius: 8, border: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(56,189,248,0.12)', color: '#38BDF8', transition: 'background 0.15s' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.26)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.12)'; }}
+                  className={`${iconBtnCls} text-sky-400 hover:bg-sky-500/15 bg-sky-500/10`}
                 >
                   <Edit size={15} />
                 </button>
@@ -399,9 +375,7 @@ export const RolesView = () => {
                   onClick={() => setDeleteConfirm(role)}
                   disabled={role.isSystemRole}
                   title={role.isSystemRole ? 'Los roles de sistema no pueden eliminarse' : 'Eliminar rol'}
-                  style={{ width: 32, height: 32, borderRadius: 8, border: 0, cursor: role.isSystemRole ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: role.isSystemRole ? '#d1d5db' : '#6b7280', opacity: role.isSystemRole ? 0.4 : 1, transition: 'background 0.15s, color 0.15s' }}
-                  onMouseEnter={e => { if (!role.isSystemRole) { e.currentTarget.style.background = 'rgba(239,68,68,0.12)'; e.currentTarget.style.color = '#ef4444'; } }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = role.isSystemRole ? '#d1d5db' : '#6b7280'; }}
+                  className={`${iconBtnCls} ${role.isSystemRole ? 'text-slate-300 dark:text-gray-700 opacity-40 cursor-not-allowed' : 'text-slate-400 dark:text-gray-500 hover:bg-red-500/10 hover:text-red-400'}`}
                 >
                   <Trash2 size={15} />
                 </button>
@@ -410,8 +384,12 @@ export const RolesView = () => {
           ))}
 
           {roles.length === 0 && !loading && (
-            <div className="text-center text-slate-500 dark:text-gray-400" style={{ padding: '2rem' }}>
-              No hay roles registrados. Crea el primero con el botón de arriba.
+            <div className={cardCls}>
+              <EmptyState
+                icon={Shield}
+                title="No hay roles registrados"
+                description="Crea el primer rol del sistema con el botón de arriba."
+              />
             </div>
           )}
         </div>

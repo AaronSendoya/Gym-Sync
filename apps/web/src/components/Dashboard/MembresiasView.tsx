@@ -5,10 +5,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { apiClient } from '../../infrastructure/api.config';
 import { usePagination } from '../../hooks/usePagination';
 import { PaginationControls } from '../common/PaginationControls';
-import { ModalOverlay, ConfirmModal } from './Shared/DashboardShared';
+import { ModalOverlay, ConfirmModal, EmptyState } from './Shared/DashboardShared';
 import { MembershipCardModal } from './MembershipCardModal';
+import { cardCls, inputCls, labelCls, btnPrimary, btnGhost, btnDanger, iconBtnCls, theadCls, thCls, tdCls, trCls } from './Shared/designTokens';
 import {
-  CreditCard, Users, ClipboardList, Plus, Pencil, Trash2, Search, CalendarDays, Dumbbell, IdCard, Snowflake, Play, History,
+  CreditCard, Users, ClipboardList, Plus, Pencil, Trash2, Search, CalendarDays, Dumbbell, IdCard, Snowflake, Play, History, Check,
 } from 'lucide-react';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -116,26 +117,34 @@ const fmtDateTime = (iso: string): string => {
   return `${date} ${time}`;
 };
 
+/**
+ * 'YYYY-MM-DD' (o un ISO completo, se recorta la parte de hora) → 'DD/MM/YYYY'.
+ * A propósito NO pasa por `new Date(...)`: un string sin hora ("2026-07-31")
+ * se parsea como medianoche UTC, y convertir eso a componentes locales en un
+ * huso negativo (Bolivia, UTC-4) puede mostrar el día anterior (30). Al ser
+ * una fecha calendario (columna DATE, no timestamp), se reformatea el texto
+ * directo — mismo criterio que dateOnlyStr en el backend.
+ */
+const fmtDate = (isoDate: string | null | undefined): string => {
+  if (!isoDate) return '—';
+  const [y, m, d] = String(isoDate).split('T')[0].split('-');
+  return y && m && d ? `${d}/${m}/${y}` : String(isoDate);
+};
+
 const clientName = (c: { email?: string; profile?: { firstName?: string; lastName?: string } } | undefined) => {
   const full = `${c?.profile?.firstName ?? ''} ${c?.profile?.lastName ?? ''}`.trim();
   return full || c?.email || '—';
 };
 
+// Micro-píldoras con borde de color atenuado (no relleno sólido chillón) —
+// mismo tratamiento para estado de membresía, modalidad de plan y alcance.
 const STATUS_STYLE: Record<string, string> = {
-  ACTIVA:    'bg-green-500/15 text-green-500',
-  ACTIVO:    'bg-green-500/15 text-green-500',
-  VENCIDA:   'bg-gray-500/15 text-gray-400',
-  CONGELADA: 'bg-sky-500/15 text-sky-400',
-  CANCELADA: 'bg-red-500/15 text-red-400',
+  ACTIVA:    'bg-green-500/10 text-green-400 border border-green-500/25',
+  ACTIVO:    'bg-green-500/10 text-green-400 border border-green-500/25',
+  VENCIDA:   'bg-gray-500/10 text-gray-400 border border-gray-500/25',
+  CONGELADA: 'bg-sky-500/10 text-sky-400 border border-sky-500/25',
+  CANCELADA: 'bg-red-500/10 text-red-400 border border-red-500/25',
 };
-
-const inputCls =
-  'w-full rounded-lg border border-slate-300 dark:border-[#3A3A3C] bg-white dark:bg-[#0A0A0A] px-3 py-2 text-sm text-slate-900 dark:text-gray-100 outline-none focus:border-brand-orange';
-const labelCls = 'block text-sm font-medium text-slate-700 dark:text-gray-300 mt-3 mb-1';
-const btnPrimary =
-  'px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-orange cursor-pointer border-0 disabled:opacity-50 disabled:cursor-not-allowed';
-const btnGhost =
-  'px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-gray-300 bg-slate-100 dark:bg-gray-800 hover:bg-slate-200 dark:hover:bg-gray-700 cursor-pointer border-0';
 
 // ─── Modal de Plan (crear / editar) ──────────────────────────────────────────
 
@@ -175,7 +184,6 @@ const PlanModal = ({ plan, onClose, onSaved }: {
   const [ownerBrandId, setOwnerBrandId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty]   = useState(false);
-  const [confirmSave, setConfirmSave] = useState(false);
 
   // Marcas + sucursales del territorio (mismo patrón que InscribirTab:
   // Super Admin elige marca → sucursal; Gerente ve directo las de su marca).
@@ -279,28 +287,28 @@ const PlanModal = ({ plan, onClose, onSaved }: {
 
   return (
     <ModalOverlay onClose={onClose} isDirty={dirty} onFormChange={() => setDirty(true)}>
-      <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+      <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-gray-100 mb-2">
         {isEdit ? 'Editar Plan' : 'Nuevo Plan de Membresía'}
       </h2>
 
-      <label className={labelCls}>Nombre *</label>
-      <input className={inputCls} value={name} onChange={e => setName(e.target.value)} placeholder="Ej: Mensualidad Regular" maxLength={100} />
+      <label className={labelCls} htmlFor="plan-name">Nombre *</label>
+      <input id="plan-name" className={inputCls} value={name} onChange={e => setName(e.target.value)} placeholder="Ej: Mensualidad Regular" maxLength={100} />
 
-      <label className={labelCls}>Descripción</label>
-      <textarea className={inputCls} rows={2} value={description ?? ''} onChange={e => setDesc(e.target.value)} placeholder="Breve descripción del plan..." maxLength={300} />
+      <label className={labelCls} htmlFor="plan-description">Descripción</label>
+      <textarea id="plan-description" className={inputCls} rows={2} value={description ?? ''} onChange={e => setDesc(e.target.value)} placeholder="Breve descripción del plan..." maxLength={300} />
 
-      <label className={labelCls}>Precio (Bs.) *</label>
-      <input className={inputCls} type="number" min="1" step="0.5" value={price} onChange={e => setPrice(e.target.value)} placeholder="Ej: 350" />
+      <label className={labelCls} htmlFor="plan-price">Precio (Bs.) *</label>
+      <input id="plan-price" className={inputCls} type="number" min="0.5" step="0.5" value={price} onChange={e => setPrice(e.target.value)} placeholder="Ej: 350" />
 
-      <label className={labelCls}>Tipo de plan *</label>
-      <div className="flex gap-2">
+      <span id="plan-type-label" className={labelCls}>Tipo de plan *</span>
+      <div className="flex gap-2" role="group" aria-labelledby="plan-type-label">
         <button
           type="button"
           onClick={() => setPlanType('FECHA')}
-          className={`flex-1 flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium cursor-pointer transition-all duration-200 ${
             planType === 'FECHA'
               ? 'border-brand-orange text-brand-orange bg-brand-orange/10'
-              : 'border-slate-300 dark:border-[#3A3A3C] text-slate-600 dark:text-gray-400 bg-transparent'
+              : 'border-slate-300 dark:border-white/10 text-slate-600 dark:text-gray-400 bg-transparent hover:border-slate-400 dark:hover:border-white/25'
           }`}
         >
           <CalendarDays size={15} /> Por fecha
@@ -308,10 +316,10 @@ const PlanModal = ({ plan, onClose, onSaved }: {
         <button
           type="button"
           onClick={() => setPlanType('SESIONES')}
-          className={`flex-1 flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium cursor-pointer transition-all duration-200 ${
             planType === 'SESIONES'
               ? 'border-brand-orange text-brand-orange bg-brand-orange/10'
-              : 'border-slate-300 dark:border-[#3A3A3C] text-slate-600 dark:text-gray-400 bg-transparent'
+              : 'border-slate-300 dark:border-white/10 text-slate-600 dark:text-gray-400 bg-transparent hover:border-slate-400 dark:hover:border-white/25'
           }`}
         >
           <Dumbbell size={15} /> Por sesiones
@@ -320,18 +328,18 @@ const PlanModal = ({ plan, onClose, onSaved }: {
 
       {planType === 'FECHA' ? (
         <>
-          <label className={labelCls}>Duración (días calendario) *</label>
-          <input className={inputCls} type="number" min="1" value={durationDays} onChange={e => setDurationDays(e.target.value)} placeholder="Ej: 30" />
+          <label className={labelCls} htmlFor="plan-duration-days">Duración (días calendario) *</label>
+          <input id="plan-duration-days" className={inputCls} type="number" min="1" value={durationDays} onChange={e => setDurationDays(e.target.value)} placeholder="Ej: 30" />
           <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">
             La membresía vence al cumplirse los días, se use o no. Ej: mensualidad regular de 30 días.
           </p>
         </>
       ) : (
         <>
-          <label className={labelCls}>Sesiones incluidas *</label>
-          <input className={inputCls} type="number" min="1" value={sessionsIncluded} onChange={e => setSessionsIncluded(e.target.value)} placeholder="Ej: 30" />
-          <label className={labelCls}>Ventana para consumirlas (días) *</label>
-          <input className={inputCls} type="number" min="1" value={windowDays} onChange={e => setWindowDays(e.target.value)} placeholder="Ej: 60" />
+          <label className={labelCls} htmlFor="plan-sessions-included">Sesiones incluidas *</label>
+          <input id="plan-sessions-included" className={inputCls} type="number" min="1" value={sessionsIncluded} onChange={e => setSessionsIncluded(e.target.value)} placeholder="Ej: 30" />
+          <label className={labelCls} htmlFor="plan-window-days">Ventana para consumirlas (días) *</label>
+          <input id="plan-window-days" className={inputCls} type="number" min="1" value={windowDays} onChange={e => setWindowDays(e.target.value)} placeholder="Ej: 60" />
           <p className="text-xs text-slate-500 dark:text-gray-500 mt-1">
             Solo cuentan los ingresos reales del cliente (check-ins). Vence al agotar las sesiones o la ventana, lo que ocurra primero.
           </p>
@@ -342,8 +350,9 @@ const PlanModal = ({ plan, onClose, onSaved }: {
         <>
           {isSuperAdmin && (
             <>
-              <label className={labelCls}>Marca</label>
+              <label className={labelCls} htmlFor="plan-owner-brand">Marca</label>
               <select
+                id="plan-owner-brand"
                 className={inputCls}
                 value={ownerBrandId}
                 onChange={e => {
@@ -358,8 +367,8 @@ const PlanModal = ({ plan, onClose, onSaved }: {
             </>
           )}
 
-          <label className={labelCls}>Sucursal dueña del plan *</label>
-          <select className={inputCls} value={ownerGymId} onChange={e => setOwnerGymId(e.target.value)}>
+          <label className={labelCls} htmlFor="plan-owner-gym">Sucursal dueña del plan *</label>
+          <select id="plan-owner-gym" className={inputCls} value={ownerGymId} onChange={e => setOwnerGymId(e.target.value)}>
             <option value="" disabled>— Selecciona una opción —</option>
             {isSuperAdmin && <option value="GLOBAL">Global — disponible en toda la red</option>}
             {branches.map(g => (
@@ -376,8 +385,8 @@ const PlanModal = ({ plan, onClose, onSaved }: {
 
       {callerLevel !== 4 && (
         <>
-          <label className={labelCls}>Alcance de acceso *</label>
-          <select className={inputCls} value={scope} onChange={e => setScope(e.target.value as 'SUCURSAL' | 'MARCA')}>
+          <label className={labelCls} htmlFor="plan-scope">Alcance de acceso *</label>
+          <select id="plan-scope" className={inputCls} value={scope} onChange={e => setScope(e.target.value as 'SUCURSAL' | 'MARCA')}>
             <option value="SUCURSAL">Sucursal única — solo la sucursal donde se inscribe</option>
             <option value="MARCA">Toda la marca (VIP) — cualquier sucursal de la red</option>
           </select>
@@ -389,19 +398,10 @@ const PlanModal = ({ plan, onClose, onSaved }: {
 
       <div className="flex gap-3 justify-end mt-6">
         <button className={btnGhost} onClick={onClose}>Cancelar</button>
-        <button className={btnPrimary} onClick={() => setConfirmSave(true)} disabled={saving}>
+        <button className={btnPrimary} onClick={handleSave} disabled={saving}>
           {saving ? 'Guardando...' : isEdit ? 'Guardar Cambios' : 'Crear Plan'}
         </button>
       </div>
-
-      <ConfirmModal
-        isOpen={confirmSave}
-        onClose={() => setConfirmSave(false)}
-        onConfirm={() => { setConfirmSave(false); handleSave(); }}
-        title={isEdit ? 'Guardar cambios' : 'Crear Plan'}
-        message={isEdit ? '¿Estás seguro de guardar los cambios en este plan?' : '¿Estás seguro de crear este nuevo plan de membresía?'}
-        confirmLabel={isEdit ? 'Sí, guardar' : 'Sí, crear'}
-      />
     </ModalOverlay>
   );
 };
@@ -468,10 +468,11 @@ const PlanesTab = () => {
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+      <div className={`${cardCls} p-4 mb-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3`}>
         <div className="relative flex-1" style={{ maxWidth: '360px' }}>
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 pointer-events-none" />
           <input
+            aria-label="Buscar plan por nombre"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar plan por nombre..."
@@ -485,7 +486,7 @@ const PlanesTab = () => {
 
       {!isLoading && (
         <p className="text-sm text-slate-500 dark:text-gray-400 mb-3">
-          {meta.total} plan{meta.total === 1 ? '' : 'es'} en tu territorio
+          <span className="font-semibold text-slate-700 dark:text-gray-300">{meta.total}</span> plan{meta.total === 1 ? '' : 'es'} en tu territorio
           {hasActiveFilters ? ` que coinciden con "${debouncedSearch}"` : ''}
         </p>
       )}
@@ -493,72 +494,80 @@ const PlanesTab = () => {
       {isLoading ? (
         <p className="text-sm text-slate-500 dark:text-gray-400 py-8 text-center">Cargando planes...</p>
       ) : plans.length === 0 ? (
-        <div className="text-center py-12 text-slate-500 dark:text-gray-500">
-          <CreditCard size={40} className="mx-auto mb-3 opacity-40" />
-          <p className="font-medium">{hasActiveFilters ? 'Sin resultados para esa búsqueda.' : 'Sin planes de membresía'}</p>
-          {hasActiveFilters ? (
-            <button className={`${btnGhost} mt-3`} onClick={() => setSearch('')}>Limpiar búsqueda</button>
-          ) : (
-            <p className="text-sm">Crea el primero con el botón "Nuevo Plan".</p>
-          )}
+        <div className={cardCls}>
+          <EmptyState
+            icon={CreditCard}
+            title={hasActiveFilters ? 'Sin resultados para esa búsqueda' : 'Sin planes de membresía'}
+            description={hasActiveFilters ? 'Prueba con otro término de búsqueda.' : 'Crea el primero con el botón "Nuevo Plan".'}
+            action={hasActiveFilters && (
+              <button className={btnGhost} onClick={() => setSearch('')}>Limpiar búsqueda</button>
+            )}
+          />
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-[#2C2C2E]">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-[#1C1C1E] text-left text-xs uppercase tracking-wide text-slate-500 dark:text-gray-500">
-                <th className="px-4 py-3">Plan</th>
-                <th className="px-4 py-3">Sucursal</th>
-                <th className="px-4 py-3">Precio</th>
-                <th className="px-4 py-3">Modalidad</th>
-                <th className="px-4 py-3 text-right">Acciones</th>
+        <div className={`overflow-x-auto ${cardCls}`}>
+          <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: '30%' }} />
+              <col style={{ width: '18%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '24%' }} />
+              <col style={{ width: '15%' }} />
+            </colgroup>
+            <thead className={theadCls}>
+              <tr>
+                <th className={`${thCls} text-left`}>Plan</th>
+                <th className={`${thCls} text-left`}>Sucursal</th>
+                <th className={`${thCls} text-left`}>Precio</th>
+                <th className={`${thCls} text-left`}>Modalidad</th>
+                <th className={`${thCls} text-right`}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {plans.map(p => (
-                <tr key={p.id} className="border-t border-slate-100 dark:border-[#2C2C2E]">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-slate-900 dark:text-white">{p.name}</div>
+                <tr key={p.id} className={trCls}>
+                  <td className={tdCls}>
+                    <div className="font-semibold text-slate-900 dark:text-gray-100">{p.name}</div>
                     {p.description && (
                       <div className="text-xs text-slate-500 dark:text-gray-500 max-w-md truncate">{p.description}</div>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className={tdCls}>
                     {p.gymId == null ? (
-                      <span className="rounded-full px-2.5 py-1 text-xs font-medium bg-sky-500/15 text-sky-400">Global (red)</span>
+                      <span className="rounded-full px-2.5 py-1 text-xs font-medium bg-sky-500/10 text-sky-400 border border-sky-500/25">Global — toda la red</span>
                     ) : (
                       <span className="text-slate-700 dark:text-gray-300 text-xs">{p.gym?.name ?? `Sucursal #${p.gymId}`}</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-slate-700 dark:text-gray-300">{fmtPrice(p.priceMonthly)}</td>
-                  <td className="px-4 py-3">
+                  <td className={`${tdCls} text-slate-700 dark:text-gray-300 font-medium`}>{fmtPrice(p.priceMonthly)}</td>
+                  <td className={tdCls}>
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                        isSessionPlan(p) ? 'bg-purple-500/15 text-purple-400' : 'bg-sky-500/15 text-sky-400'
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border ${
+                        isSessionPlan(p) ? 'bg-purple-500/10 text-purple-400 border-purple-500/25' : 'bg-sky-500/10 text-sky-400 border-sky-500/25'
                       }`}>
                         {isSessionPlan(p) ? <Dumbbell size={12} /> : <CalendarDays size={12} />}
                         {planTypeLabel(p)}
                       </span>
                       {p.scope === 'MARCA' && (
-                        <span className="rounded-full px-2.5 py-1 text-xs font-medium bg-amber-500/15 text-amber-400">
+                        <span className="rounded-full px-2.5 py-1 text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/25">
                           VIP toda la marca
                         </span>
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className={`${tdCls} text-right`}>
                     {canManagePlan(p) && (
                       <div className="flex justify-end gap-1">
                         <button
                           title="Editar plan"
-                          className="p-2 rounded-lg text-sky-500 hover:bg-sky-500/10 cursor-pointer bg-transparent border-0"
+                          className={`${iconBtnCls} text-sky-500 hover:bg-sky-500/10`}
                           onClick={() => { setModalPlan(p); setModalOpen(true); }}
                         >
                           <Pencil size={16} />
                         </button>
                         <button
                           title="Eliminar plan"
-                          className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 cursor-pointer bg-transparent border-0"
+                          className={`${iconBtnCls} text-red-400 hover:bg-red-500/10`}
                           onClick={() => setDeleteTarget(p)}
                         >
                           <Trash2 size={16} />
@@ -586,6 +595,25 @@ const PlanesTab = () => {
         message={`El plan "${deleteTarget?.name}" se eliminará permanentemente. Solo es posible si no tiene inscripciones asociadas. Esta acción no se puede deshacer.`}
       />
     </div>
+  );
+};
+
+// Aviso de membresía en el buscador de "Inscribir Cliente": evita que el
+// staff se entere de que el cliente ya está inscrito recién al chocar con el
+// 409 de uq_active_membership_per_user. `undefined` = todavía cargando.
+const MembershipStatusBadge = ({ planName }: { planName: string | null | undefined }) => {
+  if (planName === undefined) return null;
+  if (planName === null) {
+    return (
+      <span className="rounded-full px-2 py-0.5 text-[11px] font-medium bg-gray-500/15 text-gray-400">
+        Sin membresía activa
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full px-2 py-0.5 text-[11px] font-medium bg-amber-500/15 text-amber-400">
+      Ya inscrito: {planName}
+    </span>
   );
 };
 
@@ -650,6 +678,32 @@ const InscribirTab = () => {
   });
   const clients = useMemo(() => clientPages?.pages.flat() ?? [], [clientPages]);
 
+  // Estado de membresía (nombre del plan bloqueante, o null) de los resultados
+  // visibles — para avisar antes de intentar inscribir a alguien que ya tiene
+  // una membresía, en vez de que el staff solo se entere al chocar con el 409.
+  const visibleClientIds = useMemo(() => clients.map(c => c.id), [clients]);
+  const { data: listActiveStatus = {} } = useQuery({
+    queryKey: ['clients-active-status', visibleClientIds.join(',')],
+    queryFn: async () =>
+      (await apiClient.get<Record<number, string | null>>('/subscriptions/active-status', {
+        params: { userIds: visibleClientIds.join(',') },
+      })).data,
+    enabled: !selectedClient && visibleClientIds.length > 0,
+  });
+
+  // Independiente de la lista: una vez elegido el cliente, la búsqueda se
+  // limpia (y con ella la lista de arriba), así que esta consulta propia
+  // mantiene el aviso visible en la tarjeta de "cliente seleccionado".
+  const { data: selectedActiveStatus } = useQuery({
+    queryKey: ['client-active-status', selectedClient?.id],
+    queryFn: async () =>
+      (await apiClient.get<Record<number, string | null>>('/subscriptions/active-status', {
+        params: { userIds: String(selectedClient!.id) },
+      })).data,
+    enabled: !!selectedClient,
+  });
+  const selectedPlanName = selectedClient ? selectedActiveStatus?.[selectedClient.id] : null;
+
   // Sucursales/marcas: mismo patrón que ActividadesView — /gyms ya viene
   // territorialmente filtrado por el backend (Gerente solo ve su marca).
   const { data: gyms = [] } = useQuery({
@@ -707,6 +761,30 @@ const InscribirTab = () => {
     !!selectedClient && !!selectedPlan && !!startDate && !!endDate &&
     (!needsGymPicker || !!selectedGymId) && !saving;
 
+  // Pasos del wizard: la CANTIDAD se conoce de entrada según el nivel del
+  // caller (no depende de qué haya elegido todavía) — a diferencia de antes,
+  // donde el número de cada paso salía de un ternario hardcodeado por
+  // sección y "Sucursal" desaparecía del DOM hasta elegir marca, dejando un
+  // salto visible (2. Marca → 4. Plan, sin 3). Al declarar la secuencia
+  // completa una sola vez, ningún paso puede saltarse un número.
+  const wizardSteps = useMemo(() => {
+    const steps: { key: 'cliente' | 'marca' | 'sucursal' | 'plan' | 'fecha'; label: string }[] =
+      [{ key: 'cliente', label: 'Cliente' }];
+    if (isSuperAdmin) steps.push({ key: 'marca', label: 'Marca' });
+    if (needsGymPicker) steps.push({ key: 'sucursal', label: 'Sucursal' });
+    steps.push({ key: 'plan', label: 'Plan' });
+    steps.push({ key: 'fecha', label: 'Fecha' });
+    return steps;
+  }, [isSuperAdmin, needsGymPicker]);
+
+  const currentStepIndex = wizardSteps.findIndex(s => s.key === (
+    !selectedClient ? 'cliente'
+    : isSuperAdmin && !selectedBrandId ? 'marca'
+    : needsGymPicker && !selectedGymId ? 'sucursal'
+    : !selectedPlanId ? 'plan'
+    : 'fecha'
+  ));
+
   const handleInscribir = async () => {
     if (!canSubmit || !selectedClient || !selectedPlan || !endDate) return;
     setSaving(true);
@@ -745,86 +823,139 @@ const InscribirTab = () => {
 
   return (
     <div className="max-w-2xl">
-      {/* Paso 1: cliente */}
-      <label className={labelCls}>1. Buscar cliente</label>
-      {selectedClient ? (
-        <div className="flex items-center justify-between rounded-lg border border-brand-orange/50 bg-brand-orange/5 px-4 py-3">
-          <div>
-            <div className="font-medium text-slate-900 dark:text-white">
-              {`${selectedClient.firstName} ${selectedClient.lastName}`.trim() || selectedClient.email}
-            </div>
-            <div className="text-xs text-slate-500 dark:text-gray-500">
-              {selectedClient.email}{selectedClient.ci ? ` · CI ${selectedClient.ci}` : ''}
-            </div>
-          </div>
-          <button className={btnGhost} onClick={() => { setSelectedClient(null); setSearch(''); }}>
-            Cambiar
-          </button>
-        </div>
-      ) : (
-        <>
-          <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
-            <input
-              className={`${inputCls} pl-9`}
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Nombre o apellido del cliente (mínimo 2 letras)..."
-            />
-          </div>
-          {search.trim().length > 0 && search.trim().length < 2 && (
-            <p className="mt-1.5 text-xs text-slate-500 dark:text-gray-500">Escribe al menos 2 letras para buscar.</p>
-          )}
-          {debouncedSearch.length >= 2 && (
-            <div className="mt-2 rounded-lg border border-slate-200 dark:border-[#2C2C2E] overflow-hidden">
-              {searching && clients.length === 0 ? (
-                <p className="px-4 py-3 text-sm text-slate-500 dark:text-gray-500">Buscando...</p>
-              ) : clients.length === 0 ? (
-                <p className="px-4 py-3 text-sm text-slate-500 dark:text-gray-500">Sin clientes que coincidan con "{debouncedSearch}".</p>
-              ) : (
-                <>
-                  <p className="px-4 py-2 text-xs text-slate-500 dark:text-gray-500 bg-slate-50 dark:bg-[#1C1C1E] border-b border-slate-200 dark:border-[#2C2C2E]">
-                    {clients.length} resultado{clients.length === 1 ? '' : 's'}{hasNextPage ? ' (hay más — refina la búsqueda o carga más abajo)' : ''}
-                  </p>
-                  <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-[#2C2C2E]">
-                    {clients.map(c => (
-                      <button
-                        key={c.id}
-                        className="w-full text-left px-4 py-2.5 bg-transparent hover:bg-slate-50 dark:hover:bg-[#1C1C1E] cursor-pointer border-0"
-                        onClick={() => setSelectedClient(c)}
-                      >
-                        <div className="text-sm font-medium text-slate-900 dark:text-white">
-                          {`${c.firstName} ${c.lastName}`.trim() || c.email}
-                        </div>
-                        <div className="text-xs text-slate-500 dark:text-gray-500">
-                          {c.email}{c.ci ? ` · CI ${c.ci}` : ''}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  {hasNextPage && (
-                    <button
-                      className="w-full text-center px-4 py-2.5 text-sm font-medium text-brand-orange bg-slate-50 dark:bg-[#1C1C1E] hover:bg-slate-100 dark:hover:bg-[#2C2C2E] cursor-pointer border-0 border-t border-slate-200 dark:border-[#2C2C2E] disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={isFetchingNextPage}
-                      onClick={() => fetchNextPage()}
-                    >
-                      {isFetchingNextPage ? 'Cargando...' : 'Cargar más resultados'}
-                    </button>
-                  )}
-                </>
+      {/* Barra de progreso: la secuencia completa de pasos se declara una sola
+          vez (wizardSteps) — el paso "Sucursal" existe como posición fija
+          desde el principio para Super Admin/Gerente, solo cambia entre
+          pendiente/activo/completado, nunca desaparece del conteo. */}
+      <div className="flex items-center mb-6" aria-label="Progreso de inscripción">
+        {wizardSteps.map((step, i) => {
+          const state = i < currentStepIndex ? 'done' : i === currentStepIndex ? 'active' : 'pending';
+          return (
+            <div key={step.key} className={`flex items-center ${i < wizardSteps.length - 1 ? 'flex-1' : ''}`}>
+              <div className="flex flex-col items-center gap-1.5 shrink-0">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-200 ${
+                    state === 'done'
+                      ? 'bg-brand-orange border-brand-orange text-white'
+                      : state === 'active'
+                        ? 'border-brand-orange text-brand-orange bg-brand-orange/10 ring-4 ring-brand-orange/10'
+                        : 'border-slate-300 dark:border-white/15 text-slate-400 dark:text-gray-600'
+                  }`}
+                >
+                  {state === 'done' ? <Check size={14} /> : i + 1}
+                </div>
+                <span
+                  className={`text-[11px] font-semibold whitespace-nowrap ${
+                    state === 'pending' ? 'text-slate-400 dark:text-gray-600' : 'text-slate-700 dark:text-gray-300'
+                  }`}
+                >
+                  {step.label}
+                </span>
+              </div>
+              {i < wizardSteps.length - 1 && (
+                <div
+                  className={`h-0.5 flex-1 mx-2 rounded transition-all duration-200 ${
+                    state === 'done' ? 'bg-brand-orange' : 'bg-slate-200 dark:bg-white/10'
+                  }`}
+                />
               )}
             </div>
-          )}
-        </>
-      )}
+          );
+        })}
+      </div>
 
-      {/* Paso 2: sucursal — Super Admin (marca + sucursal) / Gerente (sucursal de su marca) */}
+      {/* Paso: cliente */}
+      <div className={`${cardCls} p-5 mb-4`}>
+        <span id="inscribir-search-label" className="block text-sm font-semibold text-slate-800 dark:text-gray-200 mb-3">
+          Cliente
+        </span>
+        {selectedClient ? (
+          <div className="flex items-center justify-between rounded-lg border border-brand-orange/40 bg-brand-orange/5 px-4 py-3">
+            <div>
+              <div className="font-semibold text-slate-900 dark:text-gray-100">
+                {`${selectedClient.firstName} ${selectedClient.lastName}`.trim() || selectedClient.email}
+              </div>
+              <div className="text-xs text-slate-500 dark:text-gray-500">
+                {selectedClient.email}{selectedClient.ci ? ` · CI ${selectedClient.ci}` : ''}
+              </div>
+              <div className="mt-1.5">
+                <MembershipStatusBadge planName={selectedPlanName} />
+              </div>
+            </div>
+            <button className={btnGhost} onClick={() => { setSelectedClient(null); setSearch(''); }}>
+              Cambiar
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" />
+              <input
+                aria-labelledby="inscribir-search-label"
+                className={`${inputCls} pl-9`}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Nombre o apellido del cliente (mínimo 2 letras)..."
+              />
+            </div>
+            {search.trim().length > 0 && search.trim().length < 2 && (
+              <p className="mt-1.5 text-xs text-slate-500 dark:text-gray-500">Escribe al menos 2 letras para buscar.</p>
+            )}
+            {debouncedSearch.length >= 2 && (
+              <div className="mt-2 rounded-lg border border-slate-200 dark:border-white/[0.06] overflow-hidden">
+                {searching && clients.length === 0 ? (
+                  <p className="px-4 py-3 text-sm text-slate-500 dark:text-gray-500">Buscando...</p>
+                ) : clients.length === 0 ? (
+                  <p className="px-4 py-3 text-sm text-slate-500 dark:text-gray-500">Sin clientes que coincidan con "{debouncedSearch}".</p>
+                ) : (
+                  <>
+                    <p className="px-4 py-2 text-xs text-slate-500 dark:text-gray-500 bg-slate-50 dark:bg-white/[0.04] border-b border-slate-200 dark:border-white/[0.06]">
+                      {clients.length} resultado{clients.length === 1 ? '' : 's'}{hasNextPage ? ' (hay más — refina la búsqueda o carga más abajo)' : ''}
+                    </p>
+                    <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-white/[0.06]">
+                      {clients.map(c => (
+                        <button
+                          key={c.id}
+                          className="w-full text-left px-4 py-2.5 bg-transparent hover:bg-slate-50 dark:hover:bg-white/[0.04] cursor-pointer border-0 transition-colors duration-150"
+                          onClick={() => setSelectedClient(c)}
+                        >
+                          <div className="text-sm font-medium text-slate-900 dark:text-gray-100">
+                            {`${c.firstName} ${c.lastName}`.trim() || c.email}
+                          </div>
+                          <div className="text-xs text-slate-500 dark:text-gray-500">
+                            {c.email}{c.ci ? ` · CI ${c.ci}` : ''}
+                          </div>
+                          <div className="mt-1">
+                            <MembershipStatusBadge planName={listActiveStatus[c.id]} />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    {hasNextPage && (
+                      <button
+                        className="w-full text-center px-4 py-2.5 text-sm font-medium text-brand-orange bg-slate-50 dark:bg-white/[0.04] hover:bg-slate-100 dark:hover:bg-white/[0.07] cursor-pointer border-0 border-t border-slate-200 dark:border-white/[0.06] transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={isFetchingNextPage}
+                        onClick={() => fetchNextPage()}
+                      >
+                        {isFetchingNextPage ? 'Cargando...' : 'Cargar más resultados'}
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Paso: sucursal — Super Admin (marca + sucursal) / Gerente (sucursal de su marca) */}
       {needsGymPicker && (
-        <>
+        <div className={`${cardCls} p-5 mb-4`}>
           {isSuperAdmin && (
             <>
-              <label className={labelCls}>2. Marca</label>
+              <label className="block text-sm font-semibold text-slate-800 dark:text-gray-200 mb-1.5" htmlFor="inscribir-brand">Marca</label>
               <select
+                id="inscribir-brand"
                 className={inputCls}
                 value={selectedBrandId}
                 onChange={e => {
@@ -840,8 +971,9 @@ const InscribirTab = () => {
           )}
           {(isGerente || selectedBrandId) && (
             <>
-              <label className={labelCls}>{isSuperAdmin ? '3. Sucursal' : '2. Sucursal'}</label>
+              <label className={`block text-sm font-semibold text-slate-800 dark:text-gray-200 mb-1.5 ${isSuperAdmin ? 'mt-4' : ''}`} htmlFor="inscribir-gym">Sucursal</label>
               <select
+                id="inscribir-gym"
                 className={inputCls}
                 value={selectedGymId}
                 onChange={e => {
@@ -854,58 +986,66 @@ const InscribirTab = () => {
               </select>
             </>
           )}
-        </>
-      )}
-
-      {/* Paso: plan */}
-      <label className={labelCls}>{isSuperAdmin ? '4' : isGerente ? '3' : '2'}. Plan de membresía</label>
-      <select className={inputCls} value={selectedPlanId} onChange={e => setSelectedPlanId(e.target.value)}>
-        <option value="">
-          {needsGymPicker && !selectedGymId
-            ? 'Selecciona primero la sucursal (o elige un plan global)'
-            : 'Selecciona un plan'}
-        </option>
-        {sellablePlans.map(p => (
-          <option key={p.id} value={p.id}>
-            {p.name} — {fmtPrice(p.priceMonthly)} ({planTypeLabel(p)}){p.gymId == null ? ' · Global' : ''}
-          </option>
-        ))}
-      </select>
-
-      {/* Paso: fecha — al editarla, el vencimiento del resumen se recalcula
-          automáticamente (useMemo) y el backend lo re-deriva del plan igual. */}
-      <label className={labelCls}>{isSuperAdmin ? '5' : isGerente ? '4' : '3'}. Fecha de inicio</label>
-      <input
-        className={inputCls}
-        type="date"
-        value={startDate}
-        min={startOfMonthISO()}
-        onChange={e => setStartDate(e.target.value)}
-      />
-
-      {selectedPlan && endDate && (
-        <div className="mt-4 rounded-lg border border-slate-200 dark:border-[#2C2C2E] bg-slate-50 dark:bg-[#1C1C1E] px-4 py-3 text-sm">
-          <div className="flex justify-between py-0.5">
-            <span className="text-slate-500 dark:text-gray-500">Inscripción</span>
-            <span className="text-slate-900 dark:text-white font-medium">{startDate}</span>
-          </div>
-          <div className="flex justify-between py-0.5">
-            <span className="text-slate-500 dark:text-gray-500">
-              {isSessionPlan(selectedPlan) ? 'Fin de ventana' : 'Vencimiento'}
-            </span>
-            <span className="text-slate-900 dark:text-white font-medium">{endDate}</span>
-          </div>
-          {isSessionPlan(selectedPlan) && (
-            <div className="flex justify-between py-0.5">
-              <span className="text-slate-500 dark:text-gray-500">Sesiones incluidas</span>
-              <span className="text-slate-900 dark:text-white font-medium">{selectedPlan.sessionsIncluded}</span>
-            </div>
+          {isSuperAdmin && !selectedBrandId && (
+            <p className="mt-2 text-xs text-slate-500 dark:text-gray-500">Elige una marca para ver sus sucursales.</p>
           )}
         </div>
       )}
 
+      {/* Paso: plan */}
+      <div className={`${cardCls} p-5 mb-4`}>
+        <label className="block text-sm font-semibold text-slate-800 dark:text-gray-200 mb-1.5" htmlFor="inscribir-plan">Plan de membresía</label>
+        <select id="inscribir-plan" className={inputCls} value={selectedPlanId} onChange={e => setSelectedPlanId(e.target.value)}>
+          <option value="">
+            {needsGymPicker && !selectedGymId
+              ? 'Selecciona primero la sucursal (o elige un plan global)'
+              : 'Selecciona un plan'}
+          </option>
+          {sellablePlans.map(p => (
+            <option key={p.id} value={p.id}>
+              {p.name} — {fmtPrice(p.priceMonthly)} ({planTypeLabel(p)}){p.gymId == null ? ' · Global' : ''}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Paso: fecha — al editarla, el vencimiento del resumen se recalcula
+          automáticamente (useMemo) y el backend lo re-deriva del plan igual. */}
+      <div className={`${cardCls} p-5 mb-4`}>
+        <label className="block text-sm font-semibold text-slate-800 dark:text-gray-200 mb-1.5" htmlFor="inscribir-start-date">Fecha de inicio</label>
+        <input
+          id="inscribir-start-date"
+          className={inputCls}
+          type="date"
+          value={startDate}
+          min={startOfMonthISO()}
+          onChange={e => setStartDate(e.target.value)}
+        />
+
+        {selectedPlan && endDate && (
+          <div className="mt-4 rounded-lg border border-slate-200 dark:border-white/[0.06] bg-slate-50 dark:bg-white/[0.04] px-4 py-3 text-sm">
+            <div className="flex justify-between py-0.5">
+              <span className="text-slate-500 dark:text-gray-500">Inscripción</span>
+              <span className="text-slate-900 dark:text-gray-100 font-medium">{fmtDate(startDate)}</span>
+            </div>
+            <div className="flex justify-between py-0.5">
+              <span className="text-slate-500 dark:text-gray-500">
+                {isSessionPlan(selectedPlan) ? 'Fin de ventana' : 'Vencimiento'}
+              </span>
+              <span className="text-slate-900 dark:text-gray-100 font-medium">{fmtDate(endDate)}</span>
+            </div>
+            {isSessionPlan(selectedPlan) && (
+              <div className="flex justify-between py-0.5">
+                <span className="text-slate-500 dark:text-gray-500">Sesiones incluidas</span>
+                <span className="text-slate-900 dark:text-gray-100 font-medium">{selectedPlan.sessionsIncluded}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="mt-5">
-        <button className={btnPrimary} onClick={() => setConfirmInscribir(true)} disabled={!canSubmit}>
+        <button className={`${btnPrimary} w-full sm:w-auto`} onClick={() => setConfirmInscribir(true)} disabled={!canSubmit}>
           {saving ? 'Inscribiendo...' : 'Inscribir Membresía'}
         </button>
       </div>
@@ -1033,10 +1173,11 @@ const InscripcionesTab = () => {
   return (
     <div>
       {(isLoading || meta.total > 0 || hasActiveFilters) && (
-        <div className="flex flex-col md:flex-row flex-wrap gap-3 items-center mb-4">
+        <div className={`${cardCls} p-4 mb-5 flex flex-col md:flex-row flex-wrap gap-3 items-center`}>
           <div className="relative flex-1" style={{ minWidth: '200px' }}>
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 pointer-events-none" />
             <input
+              aria-label="Buscar por nombre o email del cliente"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Buscar por nombre o email del cliente..."
@@ -1045,6 +1186,7 @@ const InscripcionesTab = () => {
           </div>
           <input
             type="date"
+            aria-label="Filtrar por membresías vigentes en esta fecha"
             className={inputCls}
             style={{ maxWidth: '170px' }}
             value={filterDate}
@@ -1052,12 +1194,12 @@ const InscripcionesTab = () => {
             title="Membresías vigentes en esta fecha"
           />
           {needsGymFilter && gymOptions.length > 0 && (
-            <select className={inputCls} style={{ maxWidth: '200px' }} value={filterGymId} onChange={e => setFilterGymId(e.target.value)}>
+            <select aria-label="Filtrar por sucursal" className={inputCls} style={{ maxWidth: '200px' }} value={filterGymId} onChange={e => setFilterGymId(e.target.value)}>
               <option value="">Todas las sucursales</option>
               {gymOptions.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
             </select>
           )}
-          <select className={inputCls} style={{ maxWidth: '160px' }} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+          <select aria-label="Filtrar por estado" className={inputCls} style={{ maxWidth: '160px' }} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
             <option value="">Todos los estados</option>
             {INSCRIPCIONES_STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
@@ -1070,26 +1212,35 @@ const InscripcionesTab = () => {
       {isLoading ? (
         <p className="text-sm text-slate-500 dark:text-gray-400 py-8 text-center">Cargando inscripciones...</p>
       ) : subs.length === 0 ? (
-        <div className="text-center py-12 text-slate-500 dark:text-gray-500">
-          <ClipboardList size={40} className="mx-auto mb-3 opacity-40" />
-          <p className="font-medium">{hasActiveFilters ? 'Sin resultados para los filtros aplicados.' : 'Sin membresías registradas'}</p>
-          {hasActiveFilters ? (
-            <button className={`${btnGhost} mt-3`} onClick={resetFilters}>Limpiar filtros</button>
-          ) : (
-            <p className="text-sm">Las inscripciones de tu territorio aparecerán aquí.</p>
-          )}
+        <div className={cardCls}>
+          <EmptyState
+            icon={ClipboardList}
+            title={hasActiveFilters ? 'Sin resultados para los filtros aplicados' : 'Sin membresías registradas'}
+            description={hasActiveFilters ? 'Prueba a ajustar o limpiar los filtros aplicados.' : 'Las inscripciones de tu territorio aparecerán aquí.'}
+            action={hasActiveFilters && (
+              <button className={btnGhost} onClick={resetFilters}>Limpiar filtros</button>
+            )}
+          />
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-[#2C2C2E]">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-[#1C1C1E] text-left text-xs uppercase tracking-wide text-slate-500 dark:text-gray-500">
-                <th className="px-4 py-3">Cliente</th>
-                <th className="px-4 py-3">Plan</th>
-                <th className="px-4 py-3">Vigencia</th>
-                <th className="px-4 py-3">Sucursal</th>
-                <th className="px-4 py-3">Estado</th>
-                <th className="px-4 py-3 text-right">Acciones</th>
+        <div className={`overflow-x-auto ${cardCls}`}>
+          <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: '24%' }} />
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '17%' }} />
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '16%' }} />
+            </colgroup>
+            <thead className={theadCls}>
+              <tr>
+                <th className={`${thCls} text-left`}>Cliente</th>
+                <th className={`${thCls} text-left`}>Plan</th>
+                <th className={`${thCls} text-left`}>Vigencia</th>
+                <th className={`${thCls} text-left`}>Sucursal</th>
+                <th className={`${thCls} text-left`}>Estado</th>
+                <th className={`${thCls} text-right`}>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -1097,30 +1248,30 @@ const InscripcionesTab = () => {
                 const isActive = s.status === 'ACTIVA' || s.status === 'ACTIVO';
                 const isFrozen = s.status === 'CONGELADA';
                 return (
-                  <tr key={s.id} className="border-t border-slate-100 dark:border-[#2C2C2E]">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900 dark:text-white">{clientName(s.user)}</div>
+                  <tr key={s.id} className={trCls}>
+                    <td className={tdCls}>
+                      <div className="font-semibold text-slate-900 dark:text-gray-100">{clientName(s.user)}</div>
                       <div className="text-xs text-slate-500 dark:text-gray-500">{s.user?.email}</div>
                     </td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-gray-300">{s.plan?.name ?? '—'}</td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-gray-300 whitespace-nowrap">
-                      {String(s.startDate).split('T')[0]} → {String(s.endDate).split('T')[0]}
+                    <td className={`${tdCls} text-slate-700 dark:text-gray-300`}>{s.plan?.name ?? '—'}</td>
+                    <td className={`${tdCls} text-slate-700 dark:text-gray-300 whitespace-nowrap`}>
+                      {fmtDate(s.startDate)} → {fmtDate(s.endDate)}
                     </td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-gray-300">{s.homeGym?.name ?? 'Global'}</td>
-                    <td className="px-4 py-3">
+                    <td className={`${tdCls} text-slate-700 dark:text-gray-300`}>{s.homeGym?.name ?? 'Global'}</td>
+                    <td className={tdCls}>
                       <span
-                        title={isFrozen && s.frozenAt ? `Congelada desde ${String(s.frozenAt).split('T')[0]}` : undefined}
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_STYLE[s.status] ?? 'bg-gray-500/15 text-gray-400'}`}
+                        title={isFrozen && s.frozenAt ? `Congelada desde ${fmtDate(s.frozenAt)}` : undefined}
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_STYLE[s.status] ?? 'bg-gray-500/10 text-gray-400 border border-gray-500/25'}`}
                       >
                         {s.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className={`${tdCls} text-right`}>
+                      <div className="flex items-center justify-end gap-1.5">
                         {s.user?.id != null && (
                           <button
                             title="Ver carnet de membresía"
-                            className="p-1.5 rounded-lg text-orange-400 hover:bg-orange-500/10 cursor-pointer bg-transparent border-0"
+                            className={`${iconBtnCls} text-orange-400 hover:bg-orange-500/10`}
                             onClick={() => setCardUserId(Number(s.user!.id))}
                           >
                             <IdCard size={16} />
@@ -1130,23 +1281,15 @@ const InscripcionesTab = () => {
                           <button
                             title={isFrozen ? 'Descongelar (extiende el vencimiento por los días congelados)' : 'Congelar membresía'}
                             disabled={freezingId === s.id}
-                            className="p-1.5 rounded-lg text-sky-400 hover:bg-sky-500/10 cursor-pointer bg-transparent border-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className={`${iconBtnCls} text-sky-400 hover:bg-sky-500/10`}
                             onClick={() => setFreezeTarget(s)}
                           >
                             {isFrozen ? <Play size={16} /> : <Snowflake size={16} />}
                           </button>
                         )}
-                        {isActive && (
+                        {(isActive || isFrozen) && (
                           <button
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 hover:bg-red-500/10 cursor-pointer bg-transparent border border-red-500/30"
-                            onClick={() => setCancelTarget(s)}
-                          >
-                            Cancelar
-                          </button>
-                        )}
-                        {isFrozen && (
-                          <button
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 hover:bg-red-500/10 cursor-pointer bg-transparent border border-red-500/30"
+                            className={btnDanger}
                             onClick={() => setCancelTarget(s)}
                           >
                             Cancelar
@@ -1198,68 +1341,112 @@ const InscripcionesTab = () => {
 // edición ni borrado, es un log de control administrativo.
 
 const HistorialCongelamientosTab = () => {
-  const { page, setPage, limit, offset } = usePagination(20, []);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  const logsKey = ['membership-freeze-logs', page, limit] as const;
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const { page, setPage, limit, offset } = usePagination(20, [debouncedSearch]);
+
+  const logsKey = ['membership-freeze-logs', page, limit, debouncedSearch] as const;
   const { data: queryData, isLoading } = useQuery({
     queryKey: logsKey,
     queryFn: async () => {
-      const res = await apiClient.get('/subscriptions/freeze-logs', { params: { limit, offset } });
+      const res = await apiClient.get('/subscriptions/freeze-logs', {
+        params: { limit, offset, search: debouncedSearch || undefined },
+      });
       const body = res.data as { data: FreezeLogDto[]; meta: { total: number; limit: number; offset: number } };
       return body;
     },
   });
   const logs = queryData?.data ?? [];
   const meta = queryData?.meta ?? { total: 0, limit, offset };
+  const hasActiveFilters = !!search;
 
   return (
     <div>
+      {(isLoading || meta.total > 0 || hasActiveFilters) && (
+        <div className={`${cardCls} p-4 mb-5 flex flex-col md:flex-row flex-wrap gap-3 items-center`}>
+          <div className="relative flex-1" style={{ minWidth: '200px' }}>
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 pointer-events-none" />
+            <input
+              aria-label="Buscar por nombre o email del cliente o de quién realizó la acción"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar por nombre o email del cliente o de quién realizó la acción..."
+              className={`${inputCls} pl-9`}
+            />
+          </div>
+          {hasActiveFilters && (
+            <button className={btnGhost} onClick={() => setSearch('')}>Limpiar filtros</button>
+          )}
+        </div>
+      )}
+
       {isLoading ? (
         <p className="text-sm text-slate-500 dark:text-gray-400 py-8 text-center">Cargando historial...</p>
       ) : logs.length === 0 ? (
-        <div className="text-center py-12 text-slate-500 dark:text-gray-500">
-          <History size={40} className="mx-auto mb-3 opacity-40" />
-          <p className="font-medium">Sin eventos de congelamiento registrados</p>
-          <p className="text-sm">Cada vez que se congele o descongele una membresía de tu territorio, quedará aquí.</p>
+        <div className={cardCls}>
+          <EmptyState
+            icon={History}
+            title={hasActiveFilters ? 'Sin resultados para los filtros aplicados' : 'Sin eventos de congelamiento registrados'}
+            description={hasActiveFilters
+              ? 'Prueba a ajustar o limpiar los filtros aplicados.'
+              : 'Cada vez que se congele o descongele una membresía de tu territorio, quedará aquí.'}
+            action={hasActiveFilters && (
+              <button className={btnGhost} onClick={() => setSearch('')}>Limpiar filtros</button>
+            )}
+          />
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-[#2C2C2E]">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-[#1C1C1E] text-left text-xs uppercase tracking-wide text-slate-500 dark:text-gray-500">
-                <th className="px-4 py-3">Fecha y hora</th>
-                <th className="px-4 py-3">Acción</th>
-                <th className="px-4 py-3">Cliente</th>
-                <th className="px-4 py-3">Sucursal</th>
-                <th className="px-4 py-3">Realizado por</th>
-                <th className="px-4 py-3">Detalle</th>
+        <div className={`overflow-x-auto ${cardCls}`}>
+          <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '20%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '24%' }} />
+            </colgroup>
+            <thead className={theadCls}>
+              <tr>
+                <th className={`${thCls} text-left`}>Fecha y hora</th>
+                <th className={`${thCls} text-left`}>Acción</th>
+                <th className={`${thCls} text-left`}>Cliente</th>
+                <th className={`${thCls} text-left`}>Sucursal</th>
+                <th className={`${thCls} text-left`}>Realizado por</th>
+                <th className={`${thCls} text-left`}>Detalle</th>
               </tr>
             </thead>
             <tbody>
               {logs.map(log => {
                 const isFreeze = log.action === 'CONGELAR';
                 return (
-                  <tr key={log.id} className="border-t border-slate-100 dark:border-[#2C2C2E]">
-                    <td className="px-4 py-3 text-slate-700 dark:text-gray-300 whitespace-nowrap">{fmtDateTime(log.occurredAt)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                        isFreeze ? 'bg-sky-500/15 text-sky-400' : 'bg-green-500/15 text-green-500'
+                  <tr key={log.id} className={trCls}>
+                    <td className={`${tdCls} text-slate-700 dark:text-gray-300 whitespace-nowrap`}>{fmtDateTime(log.occurredAt)}</td>
+                    <td className={tdCls}>
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border ${
+                        isFreeze ? 'bg-sky-500/10 text-sky-400 border-sky-500/25' : 'bg-green-500/10 text-green-400 border-green-500/25'
                       }`}>
                         {isFreeze ? <Snowflake size={12} /> : <Play size={12} />}
                         {isFreeze ? 'Congelada' : 'Descongelada'}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900 dark:text-white">{clientName(log.user)}</div>
+                    <td className={tdCls}>
+                      <div className="font-semibold text-slate-900 dark:text-gray-100">{clientName(log.user)}</div>
                       <div className="text-xs text-slate-500 dark:text-gray-500">{log.user?.email}</div>
                     </td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-gray-300">{log.homeGym?.name ?? '—'}</td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-gray-300">
+                    <td className={`${tdCls} text-slate-700 dark:text-gray-300`}>{log.homeGym?.name ?? '—'}</td>
+                    <td className={`${tdCls} text-slate-700 dark:text-gray-300`}>
                       {log.performedBy ? clientName(log.performedBy) : '—'}
                     </td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-gray-300">
+                    <td className={`${tdCls} text-slate-700 dark:text-gray-300`}>
                       {!isFreeze && log.daysFrozen != null
-                        ? `${log.daysFrozen} día${log.daysFrozen === 1 ? '' : 's'} congelada · vencimiento ${log.previousEndDate} → ${log.newEndDate}`
+                        ? `${log.daysFrozen} día${log.daysFrozen === 1 ? '' : 's'} congelada · vencimiento ${fmtDate(log.previousEndDate)} → ${fmtDate(log.newEndDate)}`
                         : '—'}
                     </td>
                   </tr>
@@ -1293,20 +1480,21 @@ export const MembresiasView = () => {
 
   return (
     <div className="p-6 md:p-8">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Membresías</h1>
-      <p className="text-sm text-slate-500 dark:text-gray-400 mt-1 mb-6">
+      <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-gray-100">Membresías</h1>
+      <p className="text-sm text-slate-500 dark:text-gray-500 mt-1 mb-6">
         Planes de membresía e inscripción de clientes de tu sucursal.
       </p>
 
-      <div className="flex gap-2 mb-6 border-b border-slate-200 dark:border-[#2C2C2E]">
+      <div className="inline-flex flex-wrap gap-1 mb-6 p-1 rounded-xl bg-slate-100 dark:bg-white/[0.04] border border-transparent dark:border-white/[0.06]">
         {TABS.map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium cursor-pointer bg-transparent border-0 border-b-2 -mb-px ${
+            aria-current={tab === t.key ? 'page' : undefined}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer border-0 transition-all duration-200 ${
               tab === t.key
-                ? 'border-brand-orange text-brand-orange'
-                : 'border-transparent text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200'
+                ? 'bg-white dark:bg-bg-surface text-brand-orange dark:ring-1 dark:ring-white/10'
+                : 'bg-transparent text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-white/[0.04]'
             }`}
           >
             {t.icon} {t.label}

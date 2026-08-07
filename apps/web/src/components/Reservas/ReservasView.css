@@ -321,7 +321,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #f05b22;
+  background: var(--color-brand-orange);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -355,21 +355,27 @@
 }
 
 .badge-status.confirmed {
-  background: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  background: rgba(74, 222, 128, 0.1);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.25);
 }
 
 .badge-status.used {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: rgba(56, 189, 248, 0.1);
+  color: var(--color-brand-celeste);
+  border: 1px solid rgba(56, 189, 248, 0.25);
 }
 
 .badge-status.cancelled {
   background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.badge-status.expired {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.25);
 }
 
 .btn-action-cancel {
@@ -391,11 +397,19 @@
 .empty-state, .loading-state {
   padding: 48px;
   text-align: center;
-  color: #71717a;
+  color: #64748b;
+}
+
+.dark .empty-state, .dark .loading-state {
+  color: var(--color-text-muted);
 }
 
 .cell-ci {
   font-family: 'JetBrains Mono', monospace;
+  color: #64748b;
+}
+
+.dark .cell-ci {
   color: #a1a1aa;
 }
 
@@ -415,12 +429,16 @@
 
 .cell-time .time {
   font-weight: 700;
-  color: #f05b22;
+  color: var(--color-brand-orange);
 }
 
 .cell-time .date {
   font-size: 12px;
-  color: #71717a;
+  color: #64748b;
+}
+
+.dark .cell-time .date {
+  color: var(--color-text-muted);
 }
 
 /* Pager */

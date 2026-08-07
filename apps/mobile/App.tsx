@@ -11,6 +11,7 @@ import { RootNavigator } from './routes/RootNavigator';
 import { useGymVisitTracker } from './app/Providers/geolocation/services/useGymVisitTracker';
 import { usePushNotificationListeners } from './app/Providers/notifications/usePushNotifications';
 import { useGymEventsSocket } from './app/Providers/notifications/useGymEventsSocket';
+import { navigationRef } from './app/Providers/notifications/navigationRef';
 
 try {
   Notifications.setNotificationHandler({
@@ -45,7 +46,7 @@ export default function App() {
       <SafeAreaProvider>
         <NetworkProvider>
           <AuthProvider>
-            <NavigationContainer>
+            <NavigationContainer ref={navigationRef}>
               <SocketProvider>
                 <AppWithTracking />
               </SocketProvider>

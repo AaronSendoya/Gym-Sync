@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Pressable, Alert, Image} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Pressable, Alert} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -7,6 +7,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { PerfilStackParamList } from '../../../routes/PerfilStack';
 import { useAuth } from '../../../app/Shared/hooks/useAuth';
 import authAxios from '../../../app/Providers/auth/authAxios';
+import { AVATAR_OPTIONS, DEFAULT_AVATAR_ICON, getAvatarColor } from '../../../app/Shared/constants/avatars';
 
 type NavigationProp = NativeStackNavigationProp<PerfilStackParamList, 'Menu'>;
 
@@ -17,6 +18,8 @@ type MenuItem = {
   action: () => void;
   premium?: boolean;
   personalized?: boolean;
+  /** Encabezado de sección mostrado justo antes de este ítem (agrupa el menú para escanearlo más rápido). */
+  sectionLabel?: string;
 };
 
 const formatRoleName = (role?: string) => {
@@ -27,18 +30,6 @@ const formatRoleName = (role?: string) => {
     .toLowerCase()
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
-
-const AVATARS = [
-  { id: '1', icon: 'face-man-profile',   image: require('../../../assets/avatarman.png')        },
-  { id: '2', icon: 'face-woman-profile',  image: require('../../../assets/avatarwoman.png')     },
-  { id: '3', icon: 'robot-outline',       image: require('../../../assets/avatarrobot.png')     },
-  { id: '4', icon: 'incognito',           image: require('../../../assets/avatarincognito.png') },
-  { id: '5', icon: 'alien-outline',       image: require('../../../assets/avataralien.png')     },
-  { id: '6', icon: 'cat',                image: require('../../../assets/avatarcat.png')        },
-  { id: '7', icon: 'fire',               image: require('../../../assets/avatarfire.png')       },
-  { id: '8', icon: 'crown',              image: require('../../../assets/avatarcrown.png')      },
-  { id: '9', icon: 'star',               image: require('../../../assets/avatarstar.png')       },
-];
 
 export const PerfilMenuScreen = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -51,11 +42,11 @@ export const PerfilMenuScreen = () => {
   const p           = (user as any)?.profile;
   const displayName = p?.username || (user as any)?.email?.split('@')[0] || 'Sin usuario';
 
-  const [localAvatar,   setLocalAvatar]   = useState<string>(p?.avatarUrl || p?.avatarIcon || 'face-man-profile');
+  const [localAvatar,   setLocalAvatar]   = useState<string>(p?.avatarUrl || p?.avatarIcon || DEFAULT_AVATAR_ICON);
   const [pickerVisible, setPickerVisible] = useState(false);
 
   useEffect(() => {
-    const synced = p?.avatarUrl || p?.avatarIcon || 'face-man-profile';
+    const synced = p?.avatarUrl || p?.avatarIcon || DEFAULT_AVATAR_ICON;
     setLocalAvatar(synced);
   }, [p?.avatarUrl, p?.avatarIcon]);
 
@@ -72,17 +63,42 @@ export const PerfilMenuScreen = () => {
     }
   };
 
+  // Agrupado por sección (Mi Cuenta primero y siempre junto — antes "Datos
+  // personales" abría la lista y "Alertas"/"Ajustes" la cerraban, con todo el
+  // contenido de entrenamiento intercalado en medio) para que el menú se
+  // escanee de un vistazo en vez de leerse como una lista plana de 9 ítems.
   const userMenuItems: MenuItem[] = [
+    // ── Mi Cuenta ──
     {
       icon: 'account', label: 'Mis datos personales',
       description: 'Actualiza tu información personal, contacto y avatar',
       action: () => navigation.navigate('DatosPersonales'),
+      sectionLabel: 'Mi Cuenta',
     },
+    {
+      icon: 'bell-ring', label: 'Alertas de salud',
+      description: 'Configura recordatorios y notificaciones de bienestar',
+      action: () => navigation.navigate('AlertasConfig'),
+    },
+    {
+      icon: 'cog-outline', label: 'Ajustes',
+      description: 'Preferencias de la app, privacidad y notificaciones',
+      action: () => navigation.navigate('Ajustes' as any),
+    },
+    // ── Identificación (solo Staff operativo) ──
+    ...(isStaffOperativo ? [{
+      icon: 'card-account-details-outline', label: 'Mi Carnet Digital',
+      description: 'Tu credencial digital para acceder al gimnasio',
+      action: () => navigation.navigate('CarnetDigital' as any), premium: true,
+      sectionLabel: 'Identificación',
+    }] : []),
+    // ── Mi Entrenamiento / Servicios Personalizados / Membresía (solo Cliente) ──
     ...(isCliente ? [
       {
         icon: 'chart-line', label: 'Mi historial físico',
         description: 'Consulta tu evolución física, métricas y progreso registrado',
         action: () => navigation.navigate('CuadroDeMando' as any),
+        sectionLabel: 'Mi Entrenamiento',
       },
       {
         icon: 'trophy', label: 'Mis objetivos',
@@ -103,35 +119,18 @@ export const PerfilMenuScreen = () => {
         icon: 'card-account-details-outline', label: 'Mi Membresía',
         description: 'Tu plan vigente, fecha de inscripción y vencimiento',
         action: () => navigation.navigate('MiMembresia' as any),
+        sectionLabel: 'Membresía',
       },
     ] : []),
-    {
-      icon: 'bell-ring', label: 'Alertas de salud',
-      description: 'Configura recordatorios y notificaciones de bienestar',
-      action: () => navigation.navigate('AlertasConfig'),
-    },
-    ...(isStaffOperativo ? [{
-      icon: 'card-account-details-outline', label: 'Mi Carnet Digital',
-      description: 'Tu credencial digital para acceder al gimnasio',
-      action: () => navigation.navigate('CarnetDigital' as any), premium: true,
-    }] : []),
-    {
-      icon: 'cog-outline', label: 'Ajustes',
-      description: 'Preferencias de la app, privacidad y notificaciones',
-      action: () => navigation.navigate('Ajustes' as any),
-    },
   ];
 
   const gerenteMenuItems: MenuItem[] = [
+    // ── Mi Cuenta ──
     {
       icon: 'account', label: 'Mis datos personales',
       description: 'Actualiza tu información personal y datos de acceso',
       action: () => navigation.navigate('DatosPersonales'),
-    },
-    {
-      icon: 'shield-check-outline', label: 'Auditoría de Sucursal',
-      description: 'Revisa registros de acceso y actividad operativa de tu sucursal',
-      action: () => navigation.navigate('AuditoriaSucursal' as any), premium: true,
+      sectionLabel: 'Mi Cuenta',
     },
     {
       icon: 'bell-ring', label: 'Alertas de salud',
@@ -142,6 +141,13 @@ export const PerfilMenuScreen = () => {
       icon: 'cog-outline', label: 'Ajustes',
       description: 'Preferencias de la app, privacidad y notificaciones',
       action: () => navigation.navigate('Ajustes' as any),
+    },
+    // ── Gestión de Sucursal ──
+    {
+      icon: 'shield-check-outline', label: 'Auditoría de Sucursal',
+      description: 'Revisa registros de acceso y actividad operativa de tu sucursal',
+      action: () => navigation.navigate('AuditoriaSucursal' as any), premium: true,
+      sectionLabel: 'Gestión de Sucursal',
     },
   ];
 
@@ -160,9 +166,10 @@ export const PerfilMenuScreen = () => {
             onPress={() => setPickerVisible(true)}
             activeOpacity={0.8}
           >
-            <Image
-              source={AVATARS.find(av => av.icon === localAvatar)?.image ?? AVATARS[0].image}
-              style={{ width: 60, height: 60, resizeMode: 'contain' }}
+            <MaterialCommunityIcons
+              name={(localAvatar || DEFAULT_AVATAR_ICON) as any}
+              size={56}
+              color={getAvatarColor(localAvatar)}
             />
             <View style={styles.avatarEditBadge}>
               <MaterialCommunityIcons name="pencil" size={12} color="#fff" />
@@ -188,6 +195,11 @@ export const PerfilMenuScreen = () => {
 
             return (
               <React.Fragment key={index}>
+                {!!item.sectionLabel && (
+                  <Text style={[styles.sectionLabel, index !== 0 && styles.sectionLabelSpaced]}>
+                    {item.sectionLabel.toUpperCase()}
+                  </Text>
+                )}
                 {isFirstPersonalized && (
                   <View style={styles.personalizedSectionHeader}>
                     <View style={styles.personalizedTag}>
@@ -240,13 +252,6 @@ export const PerfilMenuScreen = () => {
 
       </ScrollView>
 
-      {/* Pre-carga PNG avatares para evitar flash al abrir el modal */}
-      <View style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
-        {AVATARS.map(av => (
-          <Image key={av.id} source={av.image} style={{ width: 1, height: 1 }} />
-        ))}
-      </View>
-
       {/* ── Modal picker de avatares ── */}
       <Modal
         visible={pickerVisible}
@@ -260,16 +265,18 @@ export const PerfilMenuScreen = () => {
             <Text style={styles.modalTitle}>Elige tu Avatar</Text>
 
             <View style={styles.avatarGrid}>
-              {AVATARS.map((av) => (
+              {AVATAR_OPTIONS.map((av) => (
                 <TouchableOpacity
                   key={av.id}
                   style={[styles.avatarOption, localAvatar === av.icon && styles.avatarOptionSelected]}
                   onPress={() => handleAvatarSelect(av.icon)}
                   activeOpacity={0.7}
                 >
-                  <Image
-                    source={av.image}
-                    style={{ width: 42, height: 42, resizeMode: 'contain', opacity: localAvatar === av.icon ? 1 : 0.5 }}
+                  <MaterialCommunityIcons
+                    name={av.icon as any}
+                    size={32}
+                    color={av.color}
+                    style={{ opacity: localAvatar === av.icon ? 1 : 0.55 }}
                   />
                   {localAvatar === av.icon && (
                     <View style={styles.avatarCheckBadge}>
@@ -302,6 +309,8 @@ const styles = StyleSheet.create({
 
   // ── Menú ──
   menuContainer:        { paddingHorizontal: 20, marginTop: 10 },
+  sectionLabel:          { color: '#555', fontSize: 12, fontWeight: '700', letterSpacing: 0.8, marginBottom: 4 },
+  sectionLabelSpaced:    { marginTop: 22 },
   menuItem:             { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 20, borderBottomWidth: 1, borderBottomColor: '#161618' },
   menuItemPremium:      { backgroundColor: '#1C1C1E', marginHorizontal: -20, paddingHorizontal: 20, borderRadius: 12, borderBottomColor: 'transparent', borderWidth: 1, borderColor: '#FF5E00', marginVertical: 6 },
   menuItemPersonalized: { borderBottomColor: '#60a5fa18', borderLeftWidth: 3, borderLeftColor: '#60a5fa', marginHorizontal: -20, paddingHorizontal: 20, backgroundColor: '#05111f' },
